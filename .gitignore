@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# Anything derived from the game itself stays local.
+#
+# Extracting these from a copy you own is fine; publishing them is
+# redistributing FromSoftware/Bandai Namco assets. Setup.bat regenerates all of
+# it in a couple of minutes, so a clone loses nothing.
+# ---------------------------------------------------------------------------
+
+# Map tile pyramids + stitched masters (~63 MB, 7k files)
+web/tiles/
+cache/
+
+# Generated from regulation.bin and the game's message files
+data/markers.json
+data/legacy-conv.json
+
+# Your own progress and anything read out of your save
+data/user-state.json
+data/timeline.jsonl
+
+# ---------------------------------------------------------------------------
+# Safe to commit: data/eventflag_bst.txt (ER-Save-Lib) and data/paramdefs/*.xml
+# (Paramdex) are community-maintained format documentation, not game assets.
+# ---------------------------------------------------------------------------
+
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Raw research notes - superseded by docs/HOW-IT-WORKS.md and known to
+# contain some incorrect early conclusions. Kept locally, not published.
+docs/RESEARCH-BRIEF.md

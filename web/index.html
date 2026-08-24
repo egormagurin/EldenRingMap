@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elden Ring — Live Map</title>
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🗺️</text></svg>">
+</head>
+<body>
+
+<div id="app">
+
+  <aside id="sidebar">
+    <header id="brand">
+      <h1>Elden Ring</h1>
+      <span class="sub" data-i18n="app.subtitle">live map</span>
+      <div id="lang-switch" class="lang-switch"></div>
+    </header>
+
+    <section id="character" class="panel">
+      <div class="char-head">
+        <div>
+          <div id="char-name">—</div>
+          <div id="char-meta" class="dim" data-i18n="app.noSave">no save loaded</div>
+        </div>
+        <div id="live" class="live off" data-i18n-title="live.title">
+          <span class="dot"></span><span id="live-text" data-i18n="live.off">offline</span>
+        </div>
+      </div>
+      <div id="char-stats" class="stats"></div>
+      <div id="char-where" class="where dim"></div>
+    </section>
+
+    <section class="panel">
+      <div class="progress-head">
+        <span data-i18n="progress.overall">Overall</span>
+        <span id="progress-label" class="dim">0 / 0</span>
+      </div>
+      <div class="bar"><div id="progress-fill" class="fill"></div></div>
+    </section>
+
+    <div class="search-wrap">
+      <input id="search" type="search" data-i18n-placeholder="search.placeholder"
+             placeholder="Search markers…" autocomplete="off" spellcheck="false">
+      <div id="search-results"></div>
+    </div>
+
+    <section id="layers" class="panel tight">
+      <div class="panel-title" data-i18n="panel.map">Map</div>
+      <div id="layer-buttons" class="layer-buttons"></div>
+    </section>
+
+    <section id="categories" class="panel tight grow">
+      <div class="panel-title">
+        <span data-i18n="panel.categories">Categories</span>
+        <button id="toggle-all" class="mini" data-i18n="panel.selectNone">none</button>
+      </div>
+      <div id="category-list"></div>
+    </section>
+
+    <section class="panel tight">
+      <label class="row-check">
+        <input type="checkbox" id="hide-found">
+        <span data-i18n="opt.hideFound">Hide found</span>
+      </label>
+      <label class="row-check">
+        <input type="checkbox" id="show-labels" checked>
+        <span data-i18n="opt.showLabels">Show labels when zoomed</span>
+      </label>
+    </section>
+
+    <footer id="foot" class="dim"></footer>
+  </aside>
+
+  <main id="stage">
+    <canvas id="map"></canvas>
+
+    <div id="zoom-controls">
+      <button id="zoom-in" data-i18n-title="zoom.in" title="Zoom in">+</button>
+      <button id="zoom-out" data-i18n-title="zoom.out" title="Zoom out">−</button>
+      <button id="zoom-fit" data-i18n-title="zoom.fit" title="Fit map">⤢</button>
+      <button id="goto-player" data-i18n-title="zoom.player" title="Centre on last save">◎</button>
+    </div>
+
+    <div id="tooltip" class="hidden"></div>
+    <div id="popup" class="hidden"></div>
+    <div id="toasts"></div>
+    <div id="hint" class="hint" data-i18n="hint.controls">drag to pan · scroll to zoom</div>
+  </main>
+
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

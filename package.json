@@ -1,0 +1,20 @@
+{
+  "name": "elden-ring-live-map",
+  "version": "1.0.0",
+  "description": "A locally-hosted, MapGenie-style interactive Elden Ring map that live-syncs with your save file.",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "extract-tiles": "python tools/extract_tiles.py",
+    "build-markers": "python tools/build_markers.py",
+    "setup": "python tools/extract_tiles.py && python tools/build_markers.py",
+    "inspect-save": "python tools/er_save.py",
+    "verify-markers": "python tools/verify_markers.py",
+    "start:live": "node server/index.js --live-memory",
+    "check-live": "python tools/live_memory.py --probe"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}
