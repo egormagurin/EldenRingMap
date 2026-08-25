@@ -227,7 +227,19 @@ def main():
             "lot": lot_id,
         })
 
-    print(f"\nitem markers: {len(markers):,}")
+    # A projection bug is silent unless you look for it - markers simply land
+    # somewhere wrong. The master image is 10496px square, so anything outside
+    # that is definitely a coordinate error rather than odd game data.
+    MASTER = 10496
+    oob = [m for m in markers
+           if not (0 <= m["px"] <= MASTER and 0 <= m["py"] <= MASTER)]
+    if oob:
+        print(f"\n  *** {len(oob)} markers fall outside the {MASTER}px master ***")
+        for m in oob[:5]:
+            print(f"      {m['names']['en'][:30]:<32}{m['map']:<16}"
+                  f"({m['px']:.0f},{m['py']:.0f})")
+
+    print(f"\nitem markers: {len(markers):,}   (out of bounds: {len(oob)})")
     print("  by category: " + ", ".join(f"{k}={v}" for k, v in cat_counts.most_common()))
     if dropped:
         print("  dropped: " + ", ".join(f"{k}={v}" for k, v in dropped.most_common(6)))
