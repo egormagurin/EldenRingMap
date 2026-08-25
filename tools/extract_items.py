@@ -40,14 +40,18 @@ TD_PART_INDEX = 0x08      # int32, index into PARTS_PARAM_ST
 TD_ITEM_LOT = 0x10        # int32, ItemLotParam_map row id
 PART_POSITION = 0x20      # 3 x float32, local position
 
-# lotItemCategory -> the FMG table holding that item's name. Resolved
-# empirically at runtime and asserted against these expectations.
+# lotItemCategory -> the FMG table holding that item's name.
+#
+# Determined by taking every id in each category and counting which name table
+# actually contains them. Gems (Ashes of War) are category 5, NOT 6: category 5
+# matched GemName 86/86, while category 6 matched no table at all. Guessing 6
+# here silently produced zero Ash of War markers.
 CATEGORY_TABLES = {
     1: "GoodsName",
     2: "WeaponName",
     3: "ProtectorName",
     4: "AccessoryName",
-    6: "GemName",
+    5: "GemName",
 }
 
 # Items worth their own map layer. Everything else is lumped into "misc" so the
@@ -69,7 +73,7 @@ def categorise(names, category):
     low = (names or "").lower()
     if category == 4:
         return "talisman"
-    if category == 6:
+    if category == 5:
         return "ash"
     for cat, needles in NOTABLE.items():
         for n in needles:
@@ -160,8 +164,14 @@ def main():
                 stats["part index out of range"] += 1
                 continue
             x, y, z = m.vec3(part_offsets[idx] + PART_POSITION)
-            # keep the first placement we see; later LOD tiles repeat them
-            placements.setdefault(lot_id, (map_id, x, y, z))
+            # The same lot can appear in several LOD tiles of one area. Tier 0
+            # is the detailed one, so let it win rather than whichever the file
+            # ordering happened to reach first.
+            aa = int(map_id[1:3])
+            tier = int(map_id[10:12]) if aa in (60, 61) else 0
+            prev = placements.get(lot_id)
+            if prev is None or tier < prev[0]:
+                placements[lot_id] = (tier, map_id, x, y, z)
         if (i + 1) % 200 == 0:
             print(f"    {i + 1}/{len(map_ids)} maps  ({len(placements):,} lots so far)")
 
@@ -175,14 +185,17 @@ def main():
     markers = []
     dropped = Counter()
     cat_counts = Counter()
-    for lot_id, (map_id, x, y, z) in sorted(placements.items()):
+    for lot_id, (_tier, map_id, x, y, z) in sorted(placements.items()):
         row = lots[lot_id]
         flag = lot_def.get(row.data, "getItemFlagId")
         if not flag:
             dropped["no pickup flag"] += 1
             continue
         aa, bb, cc = int(map_id[1:3]), int(map_id[4:6]), int(map_id[7:9])
-        p = place(aa, bb, cc, x, y, z, conv)
+        # the trailing digits of an overworld map id are its LOD tier, and each
+        # tier doubles the world size of a grid cell
+        tier = int(map_id[10:12]) if aa in (60, 61) else 0
+        p = place(aa, bb, cc, x, y, z, conv, tier=tier)
         if p is None:
             dropped[f"unplaceable m{aa:02d}_{bb:02d}"] += 1
             continue

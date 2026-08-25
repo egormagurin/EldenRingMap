@@ -57,10 +57,18 @@ DERIVED = {
 UNDERGROUND_BLOCKS = {(12, 1), (12, 2), (12, 3), (12, 4), (12, 5), (12, 7)}
 
 
-def project(area, grid_x, grid_z, pos_x, pos_z):
-    """Overworld grid + local offset -> master pixel."""
-    world_x = grid_x * TILE_WORLD + TILE_WORLD / 2 + pos_x
-    world_z = grid_z * TILE_WORLD + TILE_WORLD / 2 + pos_z
+def project(area, grid_x, grid_z, pos_x, pos_z, tier=0):
+    """Overworld grid + local offset -> master pixel.
+
+    `tier` is the last digit of an overworld map id (m60_XX_YY_LL). The grid
+    coarsens by a factor of two per tier, so a LOD-2 tile covers 1024 world
+    units, not 256. The param tables only ever use tier 0, but map ids taken
+    from MSB filenames do not - getting this wrong throws markers thousands of
+    pixels off the map.
+    """
+    size = TILE_WORLD * (2 ** tier)
+    world_x = grid_x * size + size / 2 + pos_x
+    world_z = grid_z * size + size / 2 + pos_z
     return world_x + OFFSET_X, OFFSET_Y - world_z
 
 
@@ -92,10 +100,10 @@ class LegacyConv:
     def _rows_for(self, area, block, mapno):
         return self.by_block.get((area, block, mapno)) or self.by_block.get((area, block, 0))
 
-    def convert(self, area, block, mapno, x, y, z, _depth=0):
+    def convert(self, area, block, mapno, x, y, z, _depth=0, tier=0):
         """-> (px, py, dstArea) or None when the game does not place this block."""
         if area in (60, 61):
-            px, py = project(area, block, mapno, x, z)
+            px, py = project(area, block, mapno, x, z, tier)
             return px, py, area
         if _depth > 4:
             return None
@@ -110,13 +118,14 @@ class LegacyConv:
         nx = x - best["srcPosX"] + best["dstPosX"]
         ny = y - best["srcPosY"] + best["dstPosY"]
         nz = z - best["srcPosZ"] + best["dstPosZ"]
+        # a conv row always targets the tier-0 grid
         return self.convert(best["dstAreaNo"], best["dstGridXNo"], best["dstGridZNo"],
-                            nx, ny, nz, _depth + 1)
+                            nx, ny, nz, _depth + 1, tier=0)
 
 
-def place(area, block, mapno, x, y, z, conv):
+def place(area, block, mapno, x, y, z, conv, tier=0):
     """Any (map, local position) -> (px, py, master) or None."""
-    r = conv.convert(area, block, mapno, x, y, z)
+    r = conv.convert(area, block, mapno, x, y, z, tier=tier)
     if r is None:
         return None
     px, py, dst_area = r
