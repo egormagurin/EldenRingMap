@@ -1,6 +1,6 @@
 {
   "name": "elden-ring-live-map",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "A locally-hosted, MapGenie-style interactive Elden Ring map that live-syncs with your save file.",
   "private": true,
   "scripts": {

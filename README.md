@@ -267,6 +267,41 @@ tool.
 
 ---
 
+## Changelog
+
+### 1.2 — map icons
+Markers now draw with the game's **own map sprites** — the golden grace ring,
+catacomb arches, cave mouths, churches — instead of coloured dots. 89 icons are
+extracted from the menu texture sheets; the directional ones (grace rays,
+summoning-pool flames) are rotated the way the game draws them. A sidebar
+toggle switches back to dots.
+
+Also reads all eight text slots per map point instead of only the first, which
+recovers 8 real place names that were showing as "Landmark near X".
+
+### 1.1 — item pickups
+**+2,394 item markers**, each tracking its own pickup flag: Golden Seeds, Sacred
+Tears, talismans, cookbooks, bell bearings, whetblades, Ashes of War, weapons
+and armour. Found by parsing all 864 of the game's MSB map files and joining
+them to `ItemLotParam_map`.
+
+**+157 unnamed landmarks** that were previously being dropped — real, flagged
+places the game labels with an icon and no text.
+
+Marker total: 949 → 3,508. "Other items" (crafting materials) starts hidden so
+it doesn't bury the map.
+
+*Fixes:* overworld LOD tiers were projected at the wrong scale, throwing 17
+markers thousands of pixels off the map; Ashes of War resolved against the wrong
+name table and silently vanished. The extractor now fails loudly if anything
+lands outside the map.
+
+### 1.0 — first release
+Live map of The Lands Between and the Realm of Shadow, syncing with your save
+file as you play. Four map layers extracted from your own install, 1,114 markers
+built from the game's param tables, English and Russian, and an optional
+real-time player dot read from the running game.
+
 ## Commands
 
 | | |
