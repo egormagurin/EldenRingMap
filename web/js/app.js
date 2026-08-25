@@ -56,7 +56,31 @@ const state = {
   livePos: null,        // newest sample from the memory reader
   liveStatus: null,     // 'live' | 'waiting' | 'error' | ...
   playerRender: null,   // eased toward livePos so the dot glides
+  icons: null,          // iconId -> {file,w,h}, from web/icons/index.json
+  iconImgs: new Map(),  // iconId -> HTMLImageElement, loaded lazily
+  showIcons: true,      // draw the game's own sprites instead of coloured dots
 };
+
+/**
+ * The game's own map icons, extracted by tools/extract_icons.py. Entirely
+ * optional: if the extractor was never run the fetch fails and every marker
+ * keeps its coloured dot.
+ */
+function iconFor(mk) {
+  if (!state.showIcons || !state.icons || !mk.icon) return null;
+  const meta = state.icons[mk.icon];
+  if (!meta) return null;
+  let img = state.iconImgs.get(mk.icon);
+  if (img === undefined) {
+    img = new Image();
+    img.decoding = 'async';
+    img.onload = () => { if (map) map.requestDraw(); };
+    img.onerror = () => state.iconImgs.set(mk.icon, null);
+    img.src = meta.file;
+    state.iconImgs.set(mk.icon, img);
+  }
+  return img && img.complete && img.naturalWidth ? { img, meta } : null;
+}
 
 let map = null;
 
@@ -67,10 +91,12 @@ async function boot() {
   I18n.apply();
   buildLangSwitch();
 
-  const [manifest, markerDoc] = await Promise.all([
+  const [manifest, markerDoc, iconDoc] = await Promise.all([
     fetch('tiles/manifest.json').then((r) => r.json()).catch(() => null),
     fetch('api/markers').then((r) => r.json()).catch(() => ({ markers: [] })),
+    fetch('icons/index.json').then((r) => r.json()).catch(() => null),
   ]);
+  state.icons = iconDoc && iconDoc.icons ? iconDoc.icons : null;
 
   state.manifest = manifest;
   state.markers = (markerDoc.markers || []).filter((m) => m.px != null);
@@ -270,6 +296,43 @@ function drawOne(ctx, mk, sx, sy, m) {
   const sel = state.selected === mk.id;
   const hov = state.hovered === mk.id;
   const rad = (cat.r + (hov || sel ? 2.5 : 0)) * (m.scale > 1.6 ? 1.25 : 1);
+
+  const ic = iconFor(mk);
+  if (ic) {
+    // Constant display size regardless of zoom, like the game's own map.
+    const h = 26 * (m.scale > 1.6 ? 1.3 : 1) * (hov || sel ? 1.25 : 1);
+    const w = h * (ic.meta.w / ic.meta.h);
+    ctx.save();
+    // A few sprites are directional (the grace rays, the summoning-pool flames)
+    // and carry the heading the game draws them at.
+    if (mk.angle) {
+      ctx.translate(sx, sy);
+      ctx.rotate(mk.angle * Math.PI / 180);
+      ctx.translate(-sx, -sy);
+    }
+    // Sprites have no flat colour to tint, so "found" is shown by fading the
+    // sprite and putting the usual tick on top.
+    ctx.globalAlpha = found ? 0.4 : 1;
+    ctx.drawImage(ic.img, sx - w / 2, sy - h / 2, w, h);
+    ctx.restore();
+    if (found) {
+      ctx.beginPath();
+      ctx.moveTo(sx - rad * 0.42, sy);
+      ctx.lineTo(sx - rad * 0.08, sy + rad * 0.38);
+      ctx.lineTo(sx + rad * 0.46, sy - rad * 0.4);
+      ctx.strokeStyle = FOUND_COLOR;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    }
+    if (sel) {
+      ctx.beginPath();
+      ctx.arc(sx, sy, h * 0.62, 0, Math.PI * 2);
+      ctx.strokeStyle = cat.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    return;
+  }
 
   ctx.beginPath();
   ctx.arc(sx, sy, rad, 0, Math.PI * 2);
@@ -582,6 +645,12 @@ function wireUi() {
 
   $('hide-found').onchange = (e) => { state.hideFound = e.target.checked; map.requestDraw(); };
   $('show-labels').onchange = (e) => { state.showLabels = e.target.checked; map.requestDraw(); };
+  const gi = $('show-icons');
+  if (gi) {
+    gi.checked = state.showIcons;
+    gi.disabled = !state.icons;
+    gi.onchange = (e) => { state.showIcons = e.target.checked; map.requestDraw(); };
+  }
 
   $('toggle-all').onclick = () => {
     if (state.enabled.size) state.enabled.clear();

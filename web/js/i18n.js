@@ -34,6 +34,7 @@ const STRINGS = {
     'panel.selectAll': 'all',
     'opt.hideFound': 'Hide found',
     'opt.showLabels': 'Show labels when zoomed',
+    'opt.showIcons': "Use the game's map icons",
 
     'cat.grace': 'Sites of Grace',
     'cat.boss': 'Bosses',
@@ -117,6 +118,7 @@ const STRINGS = {
     'panel.selectAll': 'все',
     'opt.hideFound': 'Скрывать найденное',
     'opt.showLabels': 'Показывать названия при увеличении',
+    'opt.showIcons': 'Использовать игровые значки',
 
     'cat.grace': 'Места благодати',
     'cat.boss': 'Боссы',

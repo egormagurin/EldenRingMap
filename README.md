@@ -22,6 +22,8 @@ during setup, in about two minutes.
   289 points of interest, 165 unnamed landmarks, 34 map fragments, and **2,389
   item pickups**: Golden Seeds, Sacred Tears, talismans, cookbooks, bell
   bearings, whetblades, weapons and armour.
+- **The game's own map icons** — graces, catacombs, caves, churches and the rest
+  are drawn with the real sprites lifted out of the game, not coloured dots.
 - **Live progress.** Found markers turn green, and a popup names whatever you
   just discovered. Progress bars per category.
 - **Your character** — level, playtime, deaths, all eight stats, runes.
@@ -42,7 +44,7 @@ during setup, in about two minutes.
 | [Node.js](https://nodejs.org) | 18 or newer (LTS is fine) |
 | [Python](https://python.org) | 3.9 or newer — **tick "Add Python to PATH"** in the installer |
 
-About 65 MB of disk for the generated map tiles.
+About 65 MB of disk for the generated map tiles and icons.
 
 ---
 
@@ -58,9 +60,9 @@ cd EldenRingMap
 **2. Run `Setup.bat`**
 
 Double-click it. It finds your Elden Ring install, installs a few Python
-packages, extracts the map tiles, builds the marker list, and reads all 864 of
-the game's map files to find where every item is. You only need to do this again
-after a game update.
+packages, extracts the map tiles and icons, builds the marker list, and reads
+all 864 of the game's map files to find where every item is. You only need to do
+this again after a game update.
 
 If it can't find your install, open `Setup.bat` in Notepad and set the path
 by hand near the top:

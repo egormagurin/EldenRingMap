@@ -8,6 +8,8 @@
 
 # Map tile pyramids + stitched masters (~63 MB, 7k files)
 web/tiles/
+# The game's own map icon sprites, extracted by tools/extract_icons.py
+web/icons/
 cache/
 
 # Generated from regulation.bin and the game's message files

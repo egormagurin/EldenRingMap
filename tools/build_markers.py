@@ -203,6 +203,7 @@ def build(params, defs, names_by_loc, conv):
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
             "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
             "entity": v["bonfireEntityId"],
+            "icon": v["iconId"],
         })
 
     # ---- Bosses -------------------------------------------------------------
@@ -239,12 +240,19 @@ def build(params, defs, names_by_loc, conv):
     d = defs["WorldMapPointParam"]
     for r in params["WorldMapPointParam"].rows:
         v = d.as_dict(r.data, ["eventFlagId", "iconId", "areaNo", "gridXNo", "gridZNo",
-                               "posX", "posY", "posZ", "textId1", "isAreaIcon"])
+                               "posX", "posY", "posZ", "isAreaIcon", "angle"]
+                              + [f"textId{i}" for i in range(1, 9)])
         p = place(v["areaNo"], v["gridXNo"], v["gridZNo"],
                   v["posX"], v["posY"], v["posZ"], conv)
         if p is None:
             continue
-        nm = place_names(v["textId1"])
+        # textId1 is usually the name, but a handful of rows only fill a later
+        # slot - trying all eight recovers 8 real names for free.
+        nm = None
+        for slot in range(1, 9):
+            nm = place_names(v.get(f"textId{slot}", -1))
+            if nm is not None:
+                break
         if nm is None:
             # The game shows these as a bare icon with no label - they have no
             # text id at all. They are still real, individually flagged places,
@@ -265,6 +273,9 @@ def build(params, defs, names_by_loc, conv):
                 "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
                 "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
                 "icon": v["iconId"],
+                # non-zero only on the directional sprites (the grace rays and
+                # summoning-pool flames), which must be rotated when drawn
+                "angle": round(v.get("angle") or 0.0, 1) or None,
             })
             continue
         markers.append({
@@ -275,6 +286,7 @@ def build(params, defs, names_by_loc, conv):
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
             "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
             "icon": v["iconId"],
+            "angle": round(v.get("angle") or 0.0, 1) or None,
         })
 
     # ---- Map fragments ------------------------------------------------------
