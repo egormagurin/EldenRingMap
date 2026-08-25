@@ -70,10 +70,16 @@ function loadJson(file, fallback) {
 
 const projector = new Projector(loadJson(path.join(DATA, 'legacy-conv.json'), null));
 
-const markersFile = path.join(DATA, 'markers.json');
-const markerData = loadJson(markersFile, { markers: [] });
-const MARKERS = markerData.markers || [];
+/**
+ * Markers come from two generated files: markers.json (graces, bosses, POIs,
+ * map fragments - built from the param tables) and the optional items.json
+ * (item pickups - needs the slower MSB extraction). Either may be absent.
+ */
+const markerData = loadJson(path.join(DATA, 'markers.json'), { markers: [] });
+const itemData = loadJson(path.join(DATA, 'items.json'), { markers: [] });
+const MARKERS = [...(markerData.markers || []), ...(itemData.markers || [])];
 const FLAG_MARKERS = MARKERS.filter((m) => m.flag);
+const MARKER_DOC = { locales: markerData.locales || ['en'], markers: MARKERS };
 
 let userState = loadJson(USER_STATE, { checked: {} });
 function saveUserState() {
@@ -261,7 +267,7 @@ function main() {
     const p = url.pathname;
 
     if (p === '/api/state') return json(res, current);
-    if (p === '/api/markers') return json(res, markerData);
+    if (p === '/api/markers') return json(res, MARKER_DOC);
 
     if (p === '/api/events') {
       res.writeHead(200, {
@@ -327,7 +333,9 @@ data: ${JSON.stringify(live.pos)}
     console.log('');
     console.log('  Elden Ring live map');
     console.log(`  save      ${savePath}`);
-    console.log(`  markers   ${MARKERS.length} (${FLAG_MARKERS.length} flag-tracked)`);
+    console.log(`  markers   ${MARKERS.length} (${FLAG_MARKERS.length} flag-tracked)` +
+      (itemData.markers && itemData.markers.length
+        ? `  incl. ${itemData.markers.length} items` : '  (no items.json - run tools/extract_items.py)'));
     if (c) {
       console.log(`  character ${c.name}, level ${c.level}, ` +
         `${Math.floor(c.secondsPlayed / 3600)}h${String(Math.floor(c.secondsPlayed % 3600 / 60)).padStart(2, '0')}m` +

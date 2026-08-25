@@ -49,6 +49,8 @@ DERIVED = {
     "map_of":       {"en": "Map: {}",              "ru": "Карта: {}"},
     "map_fragment": {"en": "Map fragment {}",      "ru": "Фрагмент карты {}"},
     "boss_arena":   {"en": "Boss arena ({})",      "ru": "Арена босса ({})"},
+    "landmark":     {"en": "Landmark",             "ru": "Точка на карте"},
+    "landmark_near":{"en": "Landmark near {}",     "ru": "Точка рядом: {}"},
 }
 
 # Legacy blocks whose art lives on the underground master rather than the surface.
@@ -235,6 +237,26 @@ def build(params, defs, names_by_loc, conv):
             continue
         nm = place_names(v["textId1"])
         if nm is None:
+            # The game shows these as a bare icon with no label - they have no
+            # text id at all. They are still real, individually flagged places,
+            # so keep them rather than dropping 182 rows on the floor. Naming
+            # them after the nearest named place is honest ("near X", not "is
+            # X") and makes the popup useful.
+            near = nearest_marker(markers, p[2], p[0], p[1], 400)
+            if near:
+                nm = {loc: DERIVED["landmark_near"][loc].format(near["names"][loc])
+                      for loc in LOCALES}
+            else:
+                nm = {loc: DERIVED["landmark"][loc] for loc in LOCALES}
+            markers.append({
+                "id": f"landmark:{r.id}",
+                "cat": "landmark",
+                "names": nm,
+                "flag": v["eventFlagId"] or None,
+                "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
+                "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
+                "icon": v["iconId"],
+            })
             continue
         markers.append({
             "id": f"poi:{r.id}",

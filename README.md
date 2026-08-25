@@ -18,14 +18,18 @@ during setup, in about two minutes.
 
 - **Four map layers** — The Lands Between, the Underground (Siofra / Ainsel /
   Deeproot), the Realm of Shadow, and the DLC underground.
-- **949 markers that track themselves** — 418 Sites of Grace, 208 boss arenas,
-  289 points of interest, 34 map fragments.
+- **3,500 markers that track themselves** — 418 Sites of Grace, 208 boss arenas,
+  289 points of interest, 165 unnamed landmarks, 34 map fragments, and **2,389
+  item pickups**: Golden Seeds, Sacred Tears, talismans, cookbooks, bell
+  bearings, whetblades, weapons and armour.
 - **Live progress.** Found markers turn green, and a popup names whatever you
   just discovered. Progress bars per category.
 - **Your character** — level, playtime, deaths, all eight stats, runes.
 - **Real-time position** (optional) — a dot that moves as you move.
 - **English and Russian**, using the game's own text for every marker name.
 - Search, marker clustering, manual check-off, and a "hide found" filter.
+- Categories toggle independently, so you can show just Golden Seeds, or just
+  what you haven't picked up yet.
 
 ---
 
@@ -54,8 +58,9 @@ cd EldenRingMap
 **2. Run `Setup.bat`**
 
 Double-click it. It finds your Elden Ring install, installs a few Python
-packages, extracts the map tiles from your game, and builds the marker list.
-You only need to do this again after a game update.
+packages, extracts the map tiles, builds the marker list, and reads all 864 of
+the game's map files to find where every item is. You only need to do this again
+after a game update.
 
 If it can't find your install, open `Setup.bat` in Notepad and set the path
 by hand near the top:
@@ -203,6 +208,11 @@ Everything else keeps working meanwhile; only the moving dot is affected.
 Re-run `Setup.bat`. Patches occasionally change the map textures and the game
 data the markers come from.
 
+### An item shows as found that I haven't picked up
+
+Some lots are shared between several placements. If one is picked up, the flag
+is set for all of them. This is uncommon.
+
 ### Boss names look wrong
 
 They're best-effort. The game's data has boss positions and defeat flags but no
@@ -215,9 +225,12 @@ not always.
 ## Known limitations
 
 - Only the **first occupied save slot** is shown.
-- **No item-level markers** (Golden Seeds, talismans, and so on). Those live in
-  the game's map files, which this doesn't read yet. Everything shown comes from
-  the game's parameter tables.
+- **Not every item is placed.** 2,389 pickups come from the game's map files;
+  some others are spawned by event scripts and aren't covered. Enemy drops are
+  not included either.
+- **Shadow of the Erdtree items are missing.** The base game ships the DLC's map
+  art and text, so the DLC map layer and its graces/bosses do appear — but the
+  DLC's own map files are only present if you own and have installed it.
 - **Boss names are derived**, as above.
 - A few interior areas the game itself never places on the world map (Roundtable
   Hold, some arenas) are skipped.

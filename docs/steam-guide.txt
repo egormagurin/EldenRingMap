@@ -1,0 +1,251 @@
+================================================================================
+STEAM GUIDE COPY — paste-ready
+Steam Guides use BBCode, not Markdown. Everything below is already BBCode.
+================================================================================
+
+
+--------------------------------------------------------------------------------
+TITLE  (pick one)
+--------------------------------------------------------------------------------
+
+A live map that fills itself in as you play
+
+Interactive map that tracks your progress automatically — from your save file
+
+Elden Ring Live Map — an interactive map that reads your save and marks what
+you've found
+
+
+--------------------------------------------------------------------------------
+SHORT DESCRIPTION  (the summary field, ~200 characters)
+--------------------------------------------------------------------------------
+
+A free interactive map that reads your save file while you play and marks every
+Site of Grace, boss and dungeon you've already found. Runs on your own PC. No
+account, no uploads.
+
+
+--- shorter alternative (~120 chars) ---
+
+A free interactive map that reads your save and ticks off every grace, boss and
+dungeon you've found. Runs locally.
+
+
+--------------------------------------------------------------------------------
+FULL GUIDE BODY  (BBCode)
+--------------------------------------------------------------------------------
+
+[h1]What this is[/h1]
+
+An interactive map of The Lands Between and the Realm of Shadow that [b]fills
+itself in as you play[/b].
+
+Rest at a new Site of Grace and it lights up. Kill a boss and it gets a
+checkmark. No clicking things off a checklist by hand — it reads your save file
+and keeps up on its own.
+
+It runs entirely on your own PC. There is no website, no account, and nothing is
+ever uploaded.
+
+[img]PUT_YOUR_SCREENSHOT_URL_HERE[/img]
+
+[hr][/hr]
+
+[h1]What it tracks[/h1]
+
+[list]
+[*][b]418 Sites of Grace[/b] — every one, across both maps
+[*][b]208 boss arenas[/b] — ticked off as you kill them
+[*][b]289 points of interest[/b] — catacombs, caves, tunnels, landmarks
+[*][b]34 map fragments[/b] — and which region each one reveals
+[/list]
+
+Plus a live character panel: level, playtime, deaths, all eight stats and your
+rune count.
+
+Four separate map layers, so the underground actually works:
+[list]
+[*]The Lands Between
+[*]The Underground (Siofra, Ainsel, Deeproot)
+[*]Realm of Shadow
+[*]Realm of Shadow — Underground
+[/list]
+
+[b]The map is the real in-game map.[/b] Not a redraw, not a screenshot — the
+actual map textures, pulled out of your own installation and stitched together
+at full resolution.
+
+[hr][/hr]
+
+[h1]English and Russian[/h1]
+
+Marker names come from the game's own text, so everything reads exactly as it
+does in-game: [i]The First Step[/i] / [i]Первый шаг[/i], [i]Church of Elleh[/i]
+/ [i]Храм Элле[/i].
+
+Switch languages with one button. Search works in both at once, so an English
+name from a wiki still finds the right marker while the interface is in Russian.
+
+[hr][/hr]
+
+[h1]Setup[/h1]
+
+You need [b]Windows[/b], [b]Elden Ring installed[/b], and two free tools:
+[url=https://nodejs.org]Node.js[/url] and [url=https://python.org]Python[/url].
+
+[quote]When installing Python, tick [b]"Add Python to PATH"[/b] on the first
+screen of the installer. It is easy to miss and it is the single most common
+thing that goes wrong.[/quote]
+
+[olist]
+[*]Download the project from [url=https://github.com/egormagurin/EldenRingMap]GitHub[/url]
+   (green [b]Code[/b] button → [b]Download ZIP[/b]) and unzip it anywhere.
+[*]Double-click [b]Setup.bat[/b]. It finds your game, extracts the map, and
+   builds the marker list. Takes about two minutes.
+[*]Double-click [b]Start Map.bat[/b]. Your browser opens with the map.
+[/olist]
+
+That's it. Setup only needs running again after a game update.
+
+Leave the little black window open while you play — closing it stops the map.
+Your save is found automatically.
+
+[hr][/hr]
+
+[h1]Using it[/h1]
+
+[list]
+[*][b]Drag[/b] to pan, [b]scroll[/b] to zoom
+[*][b]Click a marker[/b] for details, or to tick it off by hand
+[*][b]/[/b] jumps to the search box
+[*]The [b]◎[/b] button centres the map on your character
+[*][b]Hide found[/b] leaves only what you still haven't picked up — very good
+   for cleanup runs
+[/list]
+
+[h2]On your phone[/h2]
+
+Run [b]"Start Map.bat" --lan[/b] instead. It prints a second address like
+[b]http://192.168.1.42:8099[/b] — open that on your phone or tablet and you have
+a second screen next to you while you play.
+
+[hr][/hr]
+
+[h1]Optional: a dot that moves[/h1]
+
+By default the map updates whenever the game saves. Elden Ring saves constantly,
+so your progress is never more than a few seconds stale — but your position
+jumps rather than glides.
+
+[b]Start Map LIVE.bat[/b] adds a player dot that moves smoothly with a facing
+arrow, by reading the running game. It will ask for administrator rights.
+
+[quote][b]Offline play only.[/b] Anti-cheat objects to anything that reads game
+memory, on principle. If you play online, use the normal [b]Start Map.bat[/b] —
+you lose nothing except the moving dot. This mode is for offline or modded
+setups where EAC is not running.[/quote]
+
+Everything else works identically either way.
+
+[hr][/hr]
+
+[h1]Is this safe?[/h1]
+
+The normal mode is completely passive:
+
+[list]
+[*]It [b]opens your save file for reading[/b] and never writes to it
+[*]It never touches the game process, and injects nothing
+[*]It never connects to the internet
+[/list]
+
+There is nothing for anti-cheat to see, and nothing that can corrupt a save.
+
+The optional real-time mode reads the running game's memory. That is still
+read-only and cannot modify anything — but as above, keep it to offline play,
+the same as any mod, FPS unlocker or speedrun timer.
+
+[hr][/hr]
+
+[h1]Why is there a setup step?[/h1]
+
+Because the map art and the marker names belong to FromSoftware.
+
+Shipping them would mean redistributing their artwork and text. Instead the
+project reads them out of the copy of the game you already own — which is why
+setup takes two minutes, and why nothing in the download looks like a map until
+you run it.
+
+Side effect: it always matches your game version.
+
+[hr][/hr]
+
+[h1]If something goes wrong[/h1]
+
+[b]The window opens and closes instantly[/b]
+Another copy is probably still running. Close the other black window, or end
+[b]node.exe[/b] in Task Manager.
+
+[b]"Node.js was not found" or "Python not found"[/b]
+Reinstall with [b]Add to PATH[/b] ticked, then open a [i]new[/i] window — PATH
+changes don't reach windows that were already open.
+
+[b]"Could not find your Elden Ring install"[/b]
+Open [b]Setup.bat[/b] in Notepad and set [b]GAMEDIR[/b] to the folder holding
+[b]eldenring.exe[/b]. In Steam: right-click Elden Ring → Manage → Browse local
+files, then go into the [b]Game[/b] folder.
+
+[b]Nothing shows as found[/b]
+Only the first save slot is read at the moment. If your character is in a later
+slot, that's a known limitation.
+
+[b]The map looks odd after a game update[/b]
+Run [b]Setup.bat[/b] again.
+
+The full troubleshooting list lives on the
+[url=https://github.com/egormagurin/EldenRingMap]GitHub page[/url].
+
+[hr][/hr]
+
+[h1]Honest limitations[/h1]
+
+[list]
+[*][b]No item markers yet[/b] — no Golden Seeds, Sacred Tears or talismans.
+   Those live in a part of the game data this doesn't read yet.
+[*][b]Boss names are best-effort.[/b] The game stores boss locations and kill
+   flags but no name, so each one borrows the name of the nearest landmark. It's
+   usually right, because the grace next to an arena is normally named after its
+   boss — but not always.
+[*][b]First save slot only.[/b]
+[*][b]Windows only.[/b]
+[/list]
+
+[hr][/hr]
+
+[h1]Download[/h1]
+
+Free and open source:
+[b][url=https://github.com/egormagurin/EldenRingMap]github.com/egormagurin/EldenRingMap[/url][/b]
+
+If it's useful, a rating on this guide helps other people find it. Bug reports
+and questions are welcome either in the comments or as a GitHub issue.
+
+[i]Not affiliated with FromSoftware or Bandai Namco.[/i]
+
+
+================================================================================
+NOTES BEFORE POSTING
+================================================================================
+
+1. Replace PUT_YOUR_SCREENSHOT_URL_HERE. Upload the screenshot to your Steam
+   screenshots first, then use its URL — or delete that [img] line entirely.
+   A zoomed-in Limgrave shot with the green checkmarks visible sells it best.
+
+2. Post it under Elden Ring → Community → Guides → Create Guide.
+   Category: pick "Walkthroughs" or "Maps or Levels".
+
+3. Consider adding 2-3 screenshots through the guide rather than only one:
+   the full map, a zoomed view with labels, and the sidebar with progress bars.
+
+4. Steam sometimes eats blank lines when pasting. Check the preview before
+   publishing, and re-add paragraph breaks where they collapsed.

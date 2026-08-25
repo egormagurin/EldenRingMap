@@ -7,13 +7,31 @@
  */
 
 // Labels come from i18n ('cat.<key>'); only presentation lives here.
+// Order here is the order shown in the sidebar.
 const CATS = {
-  grace:    { color: '#ffd766', r: 6 },
-  boss:     { color: '#e05a5a', r: 6 },
-  poi:      { color: '#6fb7e8', r: 5 },
-  region:   { color: '#9aa0a8', r: 5 },
-  fragment: { color: '#c58bea', r: 5 },
+  grace:     { color: '#ffd766', r: 6 },
+  boss:      { color: '#e05a5a', r: 6 },
+  poi:       { color: '#6fb7e8', r: 5 },
+  region:    { color: '#9aa0a8', r: 5 },
+  fragment:  { color: '#c58bea', r: 5 },
+  landmark:  { color: '#8fa3b8', r: 4 },
+  // --- item pickups (data/items.json) ---
+  seed:      { color: '#8ede7a', r: 5 },
+  tear:      { color: '#7dd0ff', r: 5 },
+  talisman:  { color: '#e8b84a', r: 5 },
+  ash:       { color: '#b58bea', r: 5 },
+  spirit:    { color: '#8be8d0', r: 5 },
+  cookbook:  { color: '#d9c89a', r: 4 },
+  bearing:   { color: '#e0a35a', r: 4 },
+  whetblade: { color: '#c9c9c9', r: 4 },
+  weapon:    { color: '#d4805a', r: 4 },
+  armor:     { color: '#a08f76', r: 4 },
+  misc:      { color: '#6f6f6f', r: 3 },
 };
+
+// `misc` is ~1,900 consumables and crafting materials. On by default it buries
+// the map, so it starts hidden and can be switched on from the sidebar.
+const OFF_BY_DEFAULT = new Set(['misc']);
 const FOUND_COLOR = '#6fcf7a';
 
 const $ = (id) => document.getElementById(id);
@@ -26,7 +44,7 @@ const state = {
   byId: new Map(),
   manifest: null,
   master: 'M00',
-  enabled: new Set(Object.keys(CATS)),
+  enabled: new Set(Object.keys(CATS).filter((k) => !OFF_BY_DEFAULT.has(k))),
   found: new Set(),
   checked: {},
   hideFound: false,
@@ -567,7 +585,7 @@ function wireUi() {
 
   $('toggle-all').onclick = () => {
     if (state.enabled.size) state.enabled.clear();
-    else Object.keys(CATS).forEach((k) => state.enabled.add(k));
+    else Object.keys(CATS).forEach((k) => state.enabled.add(k));   // all, incl. misc
     document.querySelectorAll('.cat').forEach((r) =>
       r.classList.toggle('off', !state.enabled.has(r.dataset.cat)));
     $('toggle-all').textContent = state.enabled.size ? t('panel.selectNone') : t('panel.selectAll');

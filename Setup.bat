@@ -24,19 +24,28 @@ if errorlevel 1 goto :no_node
 where python >nul 2>nul
 if errorlevel 1 goto :no_python
 
-echo   [1/3] Installing Python packages ...
+echo   [1/5] Installing Python packages ...
 python -m pip install --quiet --disable-pip-version-check zstandard pycryptodome pillow texture2ddecoder numpy
 if errorlevel 1 goto :pip_failed
 
-echo   [2/3] Extracting map tiles from your game ^(a couple of minutes^) ...
+echo   [2/5] Extracting map tiles from your game ^(a couple of minutes^) ...
 if "%GAMEDIR%"=="" python tools\extract_tiles.py
 if not "%GAMEDIR%"=="" python tools\extract_tiles.py --game-dir "%GAMEDIR%"
 if errorlevel 1 goto :extract_failed
 
-echo   [3/3] Building the marker dataset ...
+echo   [3/5] Building the marker dataset ...
 if "%GAMEDIR%"=="" python tools\build_markers.py
 if not "%GAMEDIR%"=="" python tools\build_markers.py "%GAMEDIR%"
 if errorlevel 1 goto :markers_failed
+
+echo   [4/5] Indexing the game's map files ...
+python tools\enumerate_maps.py >nul
+if errorlevel 1 goto :items_failed
+
+echo   [5/5] Extracting item locations ^(this reads 864 map files^) ...
+if "%GAMEDIR%"=="" python tools\extract_items.py
+if not "%GAMEDIR%"=="" python tools\extract_items.py --game-dir "%GAMEDIR%"
+if errorlevel 1 goto :items_failed
 
 echo.
 echo   Done. Start it any time with "Start Map.bat".
@@ -74,5 +83,12 @@ pause & goto :eof
 :markers_failed
 echo.
 echo   Building the marker dataset failed. See the message above.
+echo.
+pause & goto :eof
+
+:items_failed
+echo.
+echo   Item extraction failed. The map still works without it - you will just
+echo   have no item markers. Re-run this file to try again.
 echo.
 pause & goto :eof
