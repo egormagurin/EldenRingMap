@@ -55,6 +55,12 @@ during setup, in about two minutes.
 
 About 65 MB of disk for the generated map tiles and icons.
 
+The setup scripts check all of this before doing any work and say exactly what
+is missing, so you don't find out three minutes in. On Linux they also need
+`git`, `cmake` and a C++ compiler to build the Oodle shim — if any are absent
+you get the install command for your distro. `uv` and `clang` are used when
+present but are not required.
+
 ---
 
 ## Setup — once, about two minutes
@@ -110,8 +116,12 @@ There are native launchers, no Wine needed for the extraction step:
 `setup-linux.sh` builds a native Oodle shim against the game's own
 `oo2core_6_win64.dll`, and `start-map.sh` reads the running Proton process
 through `/proc` for real-time position — it does not depend on a particular
-Proton build. It needs `git`, `cmake`, `clang` and [`uv`](https://docs.astral.sh/uv/)
-on `PATH`, and Node.js as usual.
+Proton build.
+
+It needs `git`, `cmake`, a C++ compiler, Python 3.9+ and Node 18+. Run
+`./setup-linux.sh --check` first and it lists anything missing with the install
+command for your distro. [`uv`](https://docs.astral.sh/uv/) and `clang` are used
+if you have them and quietly skipped if you don't.
 
 Paths are auto-detected from `$HOME`; override any of them with `ER_GAME_DIR`,
 `ER_STEAM_ROOT`, `ER_MOD_DIR`, `ER_PREFIX` or `ER_SAVE`. Pass the Reforged mod
@@ -198,6 +208,19 @@ Fix: close the other console window, or end `node.exe` in Task Manager.
 They aren't on your PATH. Reinstall and make sure **"Add to PATH"** is ticked —
 Python's installer has this as a checkbox on the first page, easy to miss. Then
 open a *new* console; PATH changes don't reach already-open windows.
+
+On Windows there is a second cause worth knowing about. Windows ships a
+zero-byte placeholder for `python.exe` whose only job is to open the Microsoft
+Store, and it sits on your PATH whether or not you have Python. Anything that
+merely checks "is python on the PATH" is fooled by it. The scripts here run
+Python instead of looking for it, so they see through the placeholder and fall
+back to the `py` launcher if that works — but it is why `where python` can
+succeed on a machine with no Python at all.
+
+### "Your Python is too old" / "Your Node.js is too old"
+
+Python must be 3.9+ and Node 18+. The scripts print the version they found.
+Install a current one, then open a *new* console.
 
 ### "Map tiles are missing. Run Setup.bat once first."
 

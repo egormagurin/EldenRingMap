@@ -1,0 +1,12 @@
+# Keep line endings deterministic regardless of anyone's core.autocrlf. A shell
+# script committed with CRLF fails on Linux with "bad interpreter: ...^M", which
+# is easy to introduce from a Windows checkout and confusing to diagnose.
+* text=auto
+
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+*.png  binary
+*.webp binary
+*.dll  binary

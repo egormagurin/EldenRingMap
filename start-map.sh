@@ -2,8 +2,15 @@
 set -euo pipefail
 
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# Derive the home from $USER so no literal username is baked into paths.
-USER_HOME="${ER_USER_HOME:-$(getent passwd "$USER" 2>/dev/null | cut -d: -f6)}"
+# Derive the home from the account we are running as, so no literal username is
+# baked into paths. Every step here is optional: $USER is not always exported
+# (cron, containers, some login managers) and `getent` is missing on musl and
+# minimal images - where `set -e` would otherwise abort with no message at all.
+USER_HOME="${ER_USER_HOME:-}"
+if [[ -z "$USER_HOME" ]]; then
+    account="${USER:-$(id -un 2>/dev/null || true)}"
+    USER_HOME="$(getent passwd "$account" 2>/dev/null | cut -d: -f6 || true)"
+fi
 : "${USER_HOME:=$HOME}"
 readonly USER_HOME
 readonly STEAM_ROOT="${ER_STEAM_ROOT:-$USER_HOME/.steam/steam}"

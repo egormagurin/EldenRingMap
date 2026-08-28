@@ -22,14 +22,16 @@ goto :eof
 :elevated
 cd /d "%~dp0"
 
-where python >nul 2>nul
-if errorlevel 1 goto :no_python
+set "PY="
+call :probe_python python
+if not defined PY call :probe_python py -3
+if not defined PY goto :no_python
 
 tasklist /fi "imagename eq eldenring.exe" 2>nul | find /i "eldenring.exe" >nul
 if errorlevel 1 goto :not_running
 
 echo.
-python tools\live_memory.py --probe
+%PY% tools\live_memory.py --probe
 echo.
 pause
 goto :eof
@@ -39,6 +41,18 @@ echo.
 echo   Elden Ring is not running. Start it, load your character, then run this again.
 echo.
 pause & goto :eof
+
+rem Find a Python that actually runs. "where python" is not enough: Windows
+rem ships a zero-byte App Execution Alias for python.exe that only opens the
+rem Microsoft Store, and it satisfies "where" on a machine with no Python.
+:probe_python
+if defined PY goto :eof
+%* -c "import sys" >nul 2>nul
+if errorlevel 1 goto :eof
+%* -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >nul 2>nul
+if errorlevel 1 goto :eof
+set "PY=%*"
+goto :eof
 
 :no_python
 echo.

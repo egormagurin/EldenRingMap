@@ -39,8 +39,12 @@ cd /d "%~dp0"
 
 where node >nul 2>nul
 if errorlevel 1 goto :no_node
-where python >nul 2>nul
-if errorlevel 1 goto :no_python
+node -e "process.exit(parseInt(process.versions.node) >= 18 ? 0 : 1)" >nul 2>nul
+if errorlevel 1 goto :old_node
+set "PY="
+call :probe_python python
+if not defined PY call :probe_python py -3
+if not defined PY goto :no_python
 if not exist "web\tiles\manifest.json" goto :no_tiles
 
 rem --- is the port already taken? -------------------------------------------
@@ -57,7 +61,7 @@ echo.
 
 start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & start http://localhost:%PORT%"
 
-node server\index.js --port %PORT% --live-memory %*
+node server\index.js --port %PORT% --live-memory --python "%PY%" %*
 set RC=%errorlevel%
 
 echo.
@@ -65,6 +69,26 @@ if not "%RC%"=="0" echo   Server exited with code %RC%.
 if "%RC%"=="0" echo   Server stopped.
 pause
 goto :eof
+
+rem Find a Python that actually runs. "where python" is not enough: Windows
+rem ships a zero-byte App Execution Alias for python.exe that only opens the
+rem Microsoft Store, and it satisfies "where" on a machine with no Python.
+:probe_python
+if defined PY goto :eof
+%* -c "import sys" >nul 2>nul
+if errorlevel 1 goto :eof
+%* -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >nul 2>nul
+if errorlevel 1 goto :eof
+set "PY=%*"
+goto :eof
+
+:old_node
+echo.
+echo   Your Node.js is too old - this needs 18 or newer.
+for /f "delims=" %%v in ('node --version 2^>nul') do echo   Found: %%v
+echo   Install the current LTS from https://nodejs.org, then open a NEW window.
+echo.
+pause & goto :eof
 
 :no_node
 echo.

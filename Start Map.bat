@@ -14,6 +14,8 @@ rem   node server\index.js --help  full list
 
 where node >nul 2>nul
 if errorlevel 1 goto :no_node
+node -e "process.exit(parseInt(process.versions.node) >= 18 ? 0 : 1)" >nul 2>nul
+if errorlevel 1 goto :old_node
 if not exist "web\tiles\manifest.json" goto :no_tiles
 
 netstat -ano | find ":%PORT% " | find "LISTENING" >nul
@@ -36,6 +38,14 @@ if not "%RC%"=="0" echo   Server exited with code %RC%.
 if "%RC%"=="0" echo   Server stopped.
 pause
 goto :eof
+
+:old_node
+echo.
+echo   Your Node.js is too old - this needs 18 or newer.
+for /f "delims=" %%v in ('node --version 2^>nul') do echo   Found: %%v
+echo   Install the current LTS from https://nodejs.org, then open a NEW window.
+echo.
+pause & goto :eof
 
 :no_node
 echo.

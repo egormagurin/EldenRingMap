@@ -16,7 +16,18 @@ const { spawn } = require('child_process');
 class LiveMemory {
   constructor({ root, python = 'python', hz = 20, onPos, onStatus }) {
     this.root = root;
-    this.python = python;
+    // --python may name a launcher that needs its own arguments, such as
+    // "py -3" on Windows. Splitting an actual path would break the common
+    // "C:\Program Files\...\python.exe", so only split what is not a file.
+    const spec = String(python).trim();
+    if (spec && !fs.existsSync(spec)) {
+      const parts = spec.split(/\s+/);
+      this.python = parts[0];
+      this.pythonArgs = parts.slice(1);
+    } else {
+      this.python = spec;
+      this.pythonArgs = [];
+    }
     this.hz = hz;
     this.onPos = onPos || (() => {});
     this.onStatus = onStatus || (() => {});
@@ -41,7 +52,7 @@ class LiveMemory {
     this._setStatus('starting');
 
     try {
-      this.child = spawn(this.python, [script, '--hz', String(this.hz)], {
+      this.child = spawn(this.python, [...this.pythonArgs, script, '--hz', String(this.hz)], {
         cwd: this.root,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
