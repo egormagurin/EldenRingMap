@@ -40,6 +40,11 @@ html, body {
   border-right: 1px solid var(--line);
   display: flex; flex-direction: column;
   overflow: hidden;
+  transition: margin-left .22s ease, flex-basis .22s ease, width .22s ease;
+}
+#app.sb-collapsed #sidebar {
+  margin-left: calc(-1 * var(--sidebar-w));
+  flex-basis: 0; width: 0;
 }
 
 #brand {
@@ -47,6 +52,24 @@ html, body {
   border-bottom: 1px solid var(--line);
   display: flex; align-items: baseline; gap: 8px;
 }
+.sb-collapse {
+  margin-left: auto; align-self: center;
+  background: none; border: 1px solid var(--line); color: var(--dim);
+  font-size: 14px; line-height: 1; padding: 2px 7px;
+  border-radius: 3px; cursor: pointer;
+}
+.sb-collapse:hover { color: var(--text); border-color: #4a4335; }
+.sb-expand {
+  position: absolute; left: 0; top: 50%; z-index: 20;
+  transform: translateY(-50%);
+  width: 18px; padding: 12px 2px;
+  background: rgba(22,20,15,.92); color: var(--dim);
+  border: 1px solid var(--line); border-left: none; border-radius: 0 4px 4px 0;
+  cursor: pointer; font-size: 13px; line-height: 1;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+#app.sb-collapsed .sb-expand { opacity: 1; pointer-events: auto; }
+.sb-expand:hover { color: var(--gold); border-color: var(--gold); }
 .lang-switch { margin-left: auto; display: flex; gap: 3px; align-self: center; }
 .lang-btn {
   background: none; border: 1px solid var(--line); color: var(--dim);
@@ -68,7 +91,28 @@ html, body {
   font-size: 11px; letter-spacing: .13em; text-transform: uppercase;
   color: var(--dim); margin-bottom: 8px;
   display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  background: none; border: none; padding: 0;
+  cursor: pointer; text-align: left; font-family: inherit;
 }
+.panel-title:hover { color: var(--text); }
+.panel-title .chev {
+  font-size: 10px; color: var(--dim); transition: transform .18s ease;
+  display: inline-block; margin-left: 6px;
+}
+.panel.collapsed .panel-title { margin-bottom: 0; }
+.panel.collapsed .panel-title .chev { transform: rotate(-90deg); }
+.panel-body { overflow: hidden; }
+.panel.collapsed .panel-body { display: none; }
+.panel-title-txt {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: none; padding: 0; margin: 0;
+  color: inherit; font: inherit; letter-spacing: inherit;
+  text-transform: inherit; cursor: pointer; text-align: left;
+}
+.panel-title-txt:hover { color: var(--text); }
+.panel-title-txt .chev { transition: transform .18s ease; }
+.panel.collapsed .panel-title-txt .chev { transform: rotate(-90deg); }
 .dim { color: var(--dim); }
 
 .char-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
@@ -93,6 +137,13 @@ html, body {
 .stat b { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
 .stat span { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
 .where { margin-top: 10px; font-size: 11px; line-height: 1.5; }
+.save-picker { display: grid; grid-template-columns: 1fr 1.6fr; gap: 6px; margin-top: 9px; }
+.save-picker label { display: grid; gap: 3px; color: var(--dim); font-size: 10px; }
+.save-picker select {
+  min-width: 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--panel); color: var(--text); font-size: 11px;
+}
+.save-picker select:focus { border-color: var(--gold); outline: none; }
 
 .progress-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
 .bar { height: 7px; background: var(--panel-2); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
@@ -141,6 +192,12 @@ html, body {
 .cat:hover { background: #1c1913; }
 .cat.off { opacity: .4; }
 .cat .swatch { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; }
+/* Item categories show their own icon instead of a colour dot - the source
+   sprites are square with generous padding, so they need the extra box. */
+.cat .swatch.icon {
+  width: 18px; height: 18px; margin: -4px -3px; border-radius: 0;
+  object-fit: contain; image-rendering: auto;
+}
 .cat .label { flex: 1 1 auto; font-size: 13px; }
 .cat .count { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .cat .minibar { height: 3px; background: var(--panel-2); border-radius: 2px; margin-top: 3px; overflow: hidden; }
@@ -172,6 +229,9 @@ html, body {
   border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
 }
 #zoom-controls button:hover { border-color: var(--gold); color: var(--gold); }
+#zoom-controls button.active {
+  border-color: var(--gold); color: var(--gold); background: #221d12;
+}
 
 #tooltip {
   position: absolute; z-index: 30; pointer-events: none;

@@ -8,9 +8,12 @@ import sys
 import os
 import time
 
-sys.stdout.reconfigure(encoding="utf-8")
+reconfigure = getattr(sys.stdout, "reconfigure", None)
+if reconfigure:
+    reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import erlib.modfiles as modfiles
 from erlib.dvdbnd import DvdBnd, path_hash
 from erlib.gamepath import require_game_dir
 
@@ -43,6 +46,10 @@ def main():
         e = have.get(h)
         if e:
             found.append((name, e.size, e.archive))
+    by_name = {name: (size, archive) for name, size, archive in found}
+    for name, size in modfiles.loose_map_ids(modfiles.find_mod_dir()).items():
+        by_name[name] = (size, "mod")
+    found = [(name, size, archive) for name, (size, archive) in by_name.items()]
     print(f"tested {tested:,} candidate map ids in {time.time() - t0:.1f}s")
     print(f"found {len(found)} MSB files\n")
 

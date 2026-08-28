@@ -1,0 +1,13 @@
+Category icons in this directory are from Map for Goblins
+(https://github.com/VirusAlex/ERR-MapForGoblins-DLL), (c) VirusAlex,
+licensed under the MIT-style license included in that repository.
+
+Also derived from Map for Goblins' open-source data pipeline
+(tools/generate_loot_massedit.py, tools/map_categories.py):
+
+  tools/erlib/mfg_categories.py   the item category classifier
+  data/mfg/goods_*.json           item id lists and sort groups
+  data/mfg/weapon_ammo_ids.json   ammunition item ids
+  data/mfg/rune_pieces.json       Reforged Rune Piece positions
+  data/mfg/ember_pieces.json      Reforged Ember Piece positions
+  data/mfg/_piece_final_map.json  event flags for the pieces that have one

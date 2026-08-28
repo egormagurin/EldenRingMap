@@ -20,8 +20,10 @@ during setup, in about two minutes.
   Deeproot), the Realm of Shadow, and the DLC underground.
 - **3,506 markers that track themselves** — 413 Sites of Grace, 208 boss arenas,
   294 points of interest, 157 unnamed landmarks, 34 map fragments, and **2,400
-  item pickups**: Golden Seeds, Sacred Tears, talismans, cookbooks, bell
-  bearings, whetblades, weapons and armour.
+  item pickups** sorted into **47 categories**, each with its own icon: Golden
+  Seeds, Crystal Tears, talismans, spirit ashes, cookbooks, bell bearings,
+  whetblades, smithing stones by tier, golden runes by tier, gloveworts,
+  incantations, sorceries, weapons and armour.
 - **The game's own map icons** — graces, catacombs, caves, churches and the rest
   are drawn with the real sprites lifted out of the game, not coloured dots.
 - **Live progress.** Found markers turn green, and a popup names whatever you
@@ -32,6 +34,10 @@ during setup, in about two minutes.
 - **Your character** — level, playtime, deaths, all eight stats, runes.
 - **Real-time position** (optional) — a dot that moves as you move.
 - **English and Russian**, using the game's own text for every marker name.
+- **Follow mode** — the ◎ button latches, so the map keeps itself centred on you
+  as you ride.
+- **Elden Ring Reforged**, if you play it: the mod's own items and its Rune and
+  Ember Pieces, read from the mod's files.
 - Search, marker clustering, manual check-off, and a "hide found" filter.
 - Categories toggle independently, so you can show just Golden Seeds, or just
   what you haven't picked up yet.
@@ -42,7 +48,7 @@ during setup, in about two minutes.
 
 | | |
 |---|---|
-| Windows | 10 or 11 |
+| OS | Windows 10/11, or Linux with Steam Proton |
 | Elden Ring | installed — the map art is read out of your install |
 | [Node.js](https://nodejs.org) | 18 or newer (LTS is fine) |
 | [Python](https://python.org) | 3.9 or newer — **tick "Add Python to PATH"** in the installer |
@@ -78,6 +84,43 @@ That must be the folder containing `eldenring.exe` and `regulation.bin`. In
 Steam: right-click Elden Ring → Manage → Browse local files, then open the
 `Game` subfolder and copy the address bar.
 
+### Playing Elden Ring Reforged?
+
+Set `MODDIR` in `Setup.bat` as well, to the mod folder holding its own
+`regulation.bin`:
+
+```bat
+set MODDIR=D:\Games\ELDEN RING Reforged\mod
+```
+
+Setup then reads the mod's params, map files, text and icons over the game's
+archives, and adds the mod's Rune and Ember Piece markers. Map tiles still come
+from the base game unless the mod replaces them. Leave `MODDIR` empty for a
+normal unmodded game — there are no pieces to find in one.
+
+### Linux with Steam Proton
+
+There are native launchers, no Wine needed for the extraction step:
+
+```bash
+./setup-linux.sh
+./start-map.sh
+```
+
+`setup-linux.sh` builds a native Oodle shim against the game's own
+`oo2core_6_win64.dll`, and `start-map.sh` reads the running Proton process
+through `/proc` for real-time position — it does not depend on a particular
+Proton build. It needs `git`, `cmake`, `clang` and [`uv`](https://docs.astral.sh/uv/)
+on `PATH`, and Node.js as usual.
+
+Paths are auto-detected from `$HOME`; override any of them with `ER_GAME_DIR`,
+`ER_STEAM_ROOT`, `ER_MOD_DIR`, `ER_PREFIX` or `ER_SAVE`. Pass the Reforged mod
+folder the same way:
+
+```bash
+ER_MOD_DIR="/path/to/ERR/mod" ./setup-linux.sh
+```
+
 ---
 
 ## Using it
@@ -89,6 +132,10 @@ closing it stops the map.
 Your save is found automatically. Start the game, play, and the map keeps up on
 its own.
 
+If you have more than one save, the sidebar has two dropdowns: one for the save
+type (`.sl2` for vanilla, `.err` for Reforged) and one for the save file itself,
+listed by the characters inside it rather than by Steam account id.
+
 | Control | |
 |---|---|
 | Drag | pan |
@@ -96,7 +143,7 @@ its own.
 | Click a marker | details, how to get there, and a manual check-off button |
 | `/` | jump to search |
 | `Esc` | close popups |
-| ◎ button | centre on your character |
+| ◎ button | follow your character — click again, or drag, to stop |
 
 The **EN / RU** buttons at the top switch language. Marker names are the game's
 own translations, so they read exactly as they do in-game.
@@ -181,10 +228,14 @@ yours is elsewhere:
 npm start -- --save "C:\path\to\ER0000.sl2"
 ```
 
-### Everything is grey / nothing shows as found
+### The wrong character is shown
 
-Only the **first occupied save slot** is displayed. If your character is in a
-later slot, that's a current limitation.
+With real-time mode on, the running character is matched to a save slot by
+comparing its live position against each slot's last saved position, so it
+settles on the right one within a few samples of you moving. Without a running
+game there is nothing to compare against and the **first occupied slot** is
+shown. Use the save-type and save-file dropdowns in the sidebar to pick a
+different save file.
 
 ### Progress isn't updating
 
@@ -240,7 +291,12 @@ boss's in the event script to be picked up too.
 
 ## Known limitations
 
-- Only the **first occupied save slot** is shown.
+- **Which character is shown** is guessed from position when real-time mode is
+  on, and is otherwise the first occupied slot. You can change the save *file*
+  from the sidebar, but not the slot within it.
+- **The item categories follow the Reforged item ids.** On a vanilla game a
+  handful of items — the drawstring greases, the DLC's Spectral Steed Regalia —
+  land in "Other items" instead of their own category.
 - **Not every item is placed.** 2,400 pickups come from the game's map files;
   some others are spawned by event scripts and aren't covered. Enemy drops are
   not included either.
@@ -282,6 +338,45 @@ tool.
 ---
 
 ## Changelog
+
+### 1.4 — item categories, mod support, Linux
+
+**47 item categories instead of 11.** Item markers were sorted by name
+heuristics into a handful of buckets, with everything else — about 1,900
+markers — dumped into "Other items". They are now classified by item id
+against [Map for Goblins](https://github.com/VirusAlex/ERR-MapForGoblins-DLL)'
+tables: smithing stones and golden runes split by tier, crystal tears,
+gloveworts, incantations, sorceries, spirit ashes, greases, throwables,
+prattling pates, and the rest. "Other items" is down to 36 markers. Each
+category carries its own icon, on the map and in the sidebar.
+
+**Elden Ring Reforged.** Set `MODDIR` in `Setup.bat` (or `ER_MOD_DIR`) and the
+extractors read the mod's `regulation.bin`, map files, text and icon atlases
+over the game's archives. Its Rune and Ember Pieces are placed too — they are
+MSB entities rather than treasure lots, so `tools/extract_pieces.py` handles
+them separately. The server picks up `ER0000.err` saves as well as `.sl2`.
+
+**Native Linux.** `setup-linux.sh` and `start-map.sh` run the whole thing on
+Steam Proton, building an Oodle shim against the game's own DLL so extraction
+needs no Wine, and reading the live position out of `/proc`.
+
+**Follow mode.** The ◎ button latches instead of jumping once: the map keeps
+re-centring on you as you ride, and switches layer when you cross between the
+surface and the Underground. Click it again or drag the map to release it.
+Zooming does not.
+
+**Save and character picking.** The sidebar lists every `ER0000.*` it can find,
+labelled by the characters inside rather than a Steam account id, and switching
+between them re-reads without a restart. With real-time mode on, the running
+character is matched to its save slot by position — three consecutive samples
+have to agree before it switches, so a shared grace or a loading screen cannot
+flip it.
+
+**Collapsible sidebar.** Every section folds by its header, and the whole
+sidebar folds away to a tab so the map gets the full window.
+
+Ported from [xizha127's fork](https://github.com/xizha127/EldenRingMap), with
+thanks.
 
 ### 1.3 — real boss names
 
@@ -423,5 +518,12 @@ Built on format documentation from
 [Paramdex](https://github.com/soulsmods/Paramdex),
 [EROverlay](https://github.com/soarqin/EROverlay) and
 [elden-ring-compass](https://github.com/EthanShoeDev/elden-ring-compass).
+
+Item categories, their icons, and the Rune/Ember Piece locations come from
+[Map for Goblins](https://github.com/VirusAlex/ERR-MapForGoblins-DLL) by
+VirusAlex, MIT-licensed — see `web/icons/categories/NOTICE.txt`. The Linux
+Oodle shim is [linoodle](https://github.com/McSimp/linoodle) by McSimp. Linux
+support and the Map-for-Goblins integration were ported from
+[xizha127's fork](https://github.com/xizha127/EldenRingMap).
 
 Elden Ring is © FromSoftware / Bandai Namco. This is an unaffiliated fan tool.

@@ -7,7 +7,12 @@
  */
 
 // Labels come from i18n ('cat.<key>'); only presentation lives here.
-// Order here is the order shown in the sidebar.
+// Order here is the order shown in the sidebar: world markers from
+// build_markers.py first, then the item categories from extract_items.py.
+//
+// `icon` is a PNG basename under web/icons/categories/ (Map for Goblins' own
+// icons, MIT - see the NOTICE there). The markers themselves carry their icon
+// in the generated JSON; this copy is what the sidebar swatch draws.
 const CATS = {
   grace:     { color: '#ffd766', r: 6 },
   boss:      { color: '#e05a5a', r: 6 },
@@ -15,23 +20,71 @@ const CATS = {
   region:    { color: '#9aa0a8', r: 5 },
   fragment:  { color: '#c58bea', r: 5 },
   landmark:  { color: '#8fa3b8', r: 4 },
-  // --- item pickups (data/items.json) ---
-  seed:      { color: '#8ede7a', r: 5 },
-  tear:      { color: '#7dd0ff', r: 5 },
-  talisman:  { color: '#e8b84a', r: 5 },
-  ash:       { color: '#b58bea', r: 5 },
-  spirit:    { color: '#8be8d0', r: 5 },
-  cookbook:  { color: '#d9c89a', r: 4 },
-  bearing:   { color: '#e0a35a', r: 4 },
-  whetblade: { color: '#c9c9c9', r: 4 },
-  weapon:    { color: '#d4805a', r: 4 },
-  armor:     { color: '#a08f76', r: 4 },
-  misc:      { color: '#6f6f6f', r: 3 },
+  // --- equipment ---
+  armaments:    { color: '#d4805a', r: 4, icon: 'weapon.png' },
+  armour:       { color: '#a08f76', r: 4, icon: 'armor.png' },
+  ashes_of_war: { color: '#b58bea', r: 4, icon: 'ash.png' },
+  spirits:      { color: '#8be8d0', r: 4, icon: 'spirit.png' },
+  talismans:    { color: '#e8b84a', r: 4, icon: 'talisman.png' },
+  // --- key items ---
+  celestial_dew:      { color: '#aed8ff', r: 4, icon: 'dew.png' },
+  cookbooks:          { color: '#d9c89a', r: 4, icon: 'cookbook.png' },
+  crystal_tears:      { color: '#7dd0ff', r: 4, icon: 'crystal_tears.png' },
+  imbued_sword_keys:  { color: '#b0c4ff', r: 4, icon: 'stone_key_2.png' },
+  larval_tears:       { color: '#ff9dd6', r: 4, icon: 'larval.png' },
+  lost_ashes:         { color: '#cf9fe8', r: 4, icon: 'lost_ash.png' },
+  pots_n_perfumes:    { color: '#c9b58a', r: 4, icon: 'pots_n_perfumes.png' },
+  seeds_tears:        { color: '#8ede7a', r: 4, icon: 'seed.png' },
+  scadutree_fragments:{ color: '#e8d8a0', r: 4, icon: 'skadu.png' },
+  whetblades:         { color: '#c9c9c9', r: 4, icon: 'whetblade.png' },
+  great_runes:        { color: '#ffd766', r: 4, icon: 'great.png' },
+  // --- loot ---
+  ammo:                  { color: '#c9a06a', r: 4, icon: 'ammo.png' },
+  bell_bearings:         { color: '#e0a35a', r: 4, icon: 'bell.png' },
+  merchant_bell_bearings:{ color: '#d88a4a', r: 4, icon: 'bell_m.png' },
+  consumables:           { color: '#9fbf8f', r: 3, icon: 'consumables.png' },
+  greases:               { color: '#c9d17a', r: 3, icon: 'grease.png' },
+  utilities:             { color: '#8fb8a8', r: 3, icon: 'utils.png' },
+  stat_boosts:           { color: '#d8a8c8', r: 3, icon: 'shard.png' },
+  crafting_materials:    { color: '#7fae7f', r: 3, icon: 'materials.png' },
+  gloveworts:            { color: '#c9b5d8', r: 3, icon: 'glove.png' },
+  great_gloveworts:      { color: '#a890c9', r: 3, icon: 'glove_high.png' },
+  golden_runes:          { color: '#e8d04a', r: 4, icon: 'rune_high.png' },
+  golden_runes_low:      { color: '#d8c040', r: 3, icon: 'rune_low.png' },
+  material_nodes:        { color: '#7fae7f', r: 3, icon: 'nodes.png' },
+  mp_fingers:            { color: '#c9a8a8', r: 3, icon: 'finger.png' },
+  prattling_pates:       { color: '#e0c8a0', r: 3, icon: 'pate.png' },
+  gestures:              { color: '#c0c9d8', r: 3, icon: 'gesture.png' },
+  reusables:             { color: '#a8c9c0', r: 3, icon: 'reusable.png' },
+  smithing_stones:       { color: '#d8b878', r: 4, icon: 'smst.png' },
+  smithing_stones_low:   { color: '#c9a868', r: 3, icon: 'smst_low.png' },
+  smithing_stones_rare:  { color: '#e0c890', r: 4, icon: 'smst_high.png' },
+  stonesword_keys:       { color: '#b0c0e0', r: 4, icon: 'stone_key.png' },
+  throwables:            { color: '#c9a0a0', r: 3, icon: 'throw.png' },
+  rune_arcs:             { color: '#e8d878', r: 4, icon: 'ark.png' },
+  dragon_hearts:         { color: '#e08080', r: 4, icon: 'dragon_heart.png' },
+  // --- magic ---
+  incantations:  { color: '#e8b878', r: 4, icon: 'incantation.png' },
+  memory_stones: { color: '#c9b8e0', r: 4, icon: 'memory.png' },
+  prayerbooks:   { color: '#d8c8a0', r: 4, icon: 'prayerbook.png' },
+  sorceries:     { color: '#8bb8e8', r: 4, icon: 'sorceries.png' },
+  // --- quest ---
+  deathroot:      { color: '#c08080', r: 4, icon: 'death.png' },
+  progression:    { color: '#c0a8d8', r: 4, icon: 'quest.png' },
+  seedbed_curses: { color: '#a080c0', r: 4, icon: 'curse.png' },
+  // --- Elden Ring Reforged only ---
+  ember_pieces:      { color: '#ff8a5a', r: 4, icon: 'ember_piece.png' },
+  items_and_changes: { color: '#d8a8e0', r: 4, icon: 'reforged.png' },
+  fortunes:          { color: '#e8c080', r: 4, icon: 'fortune.png' },
+  rune_pieces:       { color: '#ffd080', r: 4, icon: 'rune_piece.png' },
+  sealed_curios:     { color: '#b8a8d8', r: 4, icon: 'curio.png' },
+  // --- fallback ---
+  misc: { color: '#6f6f6f', r: 3 },
 };
 
-// `misc` is ~1,900 consumables and crafting materials. On by default it buries
-// the map, so it starts hidden and can be switched on from the sidebar.
-const OFF_BY_DEFAULT = new Set(['misc']);
+// High-volume categories that bury the map when they are all on at once. They
+// start hidden and can be switched on from the sidebar.
+const OFF_BY_DEFAULT = new Set(['misc', 'consumables', 'crafting_materials', 'ammo']);
 const FOUND_COLOR = '#6fcf7a';
 
 const $ = (id) => document.getElementById(id);
@@ -49,7 +102,10 @@ const state = {
   checked: {},
   hideFound: false,
   showLabels: true,
-  character: null,
+  saves: [],            // every ER0000.* the server found, from api/saves
+  savePath: null,       // the one it is currently watching
+  characters: [],       // every slot in that save
+  character: null,      // the slot being displayed
   selected: null,
   hovered: null,
   clusters: [],
@@ -57,29 +113,44 @@ const state = {
   liveStatus: null,     // 'live' | 'waiting' | 'error' | ...
   playerRender: null,   // eased toward livePos so the dot glides
   icons: null,          // iconId -> {file,w,h}, from web/icons/index.json
-  iconImgs: new Map(),  // iconId -> HTMLImageElement, loaded lazily
-  showIcons: true,      // draw the game's own sprites instead of coloured dots
+  iconImgs: new Map(),  // icon key -> HTMLImageElement, loaded lazily
+  showIcons: true,      // draw real sprites instead of coloured dots
+  followPlayer: false,  // keep re-centring on the player until told to stop
 };
 
-/**
- * The game's own map icons, extracted by tools/extract_icons.py. Entirely
- * optional: if the extractor was never run the fetch fails and every marker
- * keeps its coloured dot.
- */
-function iconFor(mk) {
-  if (!state.showIcons || !state.icons || !mk.icon) return null;
-  const meta = state.icons[mk.icon];
-  if (!meta) return null;
-  let img = state.iconImgs.get(mk.icon);
+/** Load an icon once, redrawing when it arrives; null until it is ready. */
+function loadIcon(key, src) {
+  let img = state.iconImgs.get(key);
   if (img === undefined) {
     img = new Image();
     img.decoding = 'async';
     img.onload = () => { if (map) map.requestDraw(); };
-    img.onerror = () => state.iconImgs.set(mk.icon, null);
-    img.src = meta.file;
-    state.iconImgs.set(mk.icon, img);
+    img.onerror = () => state.iconImgs.set(key, null);
+    img.src = src;
+    state.iconImgs.set(key, img);
   }
-  return img && img.complete && img.naturalWidth ? { img, meta } : null;
+  return img && img.complete && img.naturalWidth ? img : null;
+}
+
+/**
+ * Marker sprites, from two sources that the marker's `icon` field distinguishes
+ * by shape. World markers carry a numeric iconId cut out of the game's own
+ * atlases by tools/extract_icons.py and resolved through icons/index.json; item
+ * markers carry a PNG basename served straight from icons/categories/. Both are
+ * optional - without either, markers fall back to coloured dots.
+ */
+function iconFor(mk) {
+  if (!state.showIcons || !mk.icon) return null;
+  const key = mk.icon;
+  if (typeof key === 'string' && key.endsWith('.png')) {
+    const img = loadIcon(key, 'icons/categories/' + key);
+    return img ? { img, meta: { w: img.naturalWidth, h: img.naturalHeight } } : null;
+  }
+  if (!state.icons) return null;
+  const meta = state.icons[key];
+  if (!meta) return null;
+  const img = loadIcon(key, meta.file);
+  return img ? { img, meta } : null;
 }
 
 let map = null;
@@ -91,15 +162,18 @@ async function boot() {
   I18n.apply();
   buildLangSwitch();
 
-  const [manifest, markerDoc, iconDoc] = await Promise.all([
+  const [manifest, markerDoc, iconDoc, saveDoc] = await Promise.all([
     fetch('tiles/manifest.json').then((r) => r.json()).catch(() => null),
     fetch('api/markers').then((r) => r.json()).catch(() => ({ markers: [] })),
     fetch('icons/index.json').then((r) => r.json()).catch(() => null),
+    fetch('api/saves').then((r) => r.json()).catch(() => ({ current: null, saves: [] })),
   ]);
   state.icons = iconDoc && iconDoc.icons ? iconDoc.icons : null;
 
   state.manifest = manifest;
   state.markers = (markerDoc.markers || []).filter((m) => m.px != null);
+  state.saves = saveDoc.saves || [];
+  state.savePath = saveDoc.current || null;
   for (const m of state.markers) state.byId.set(m.id, m);
 
   if (!manifest || !manifest.masters || !Object.keys(manifest.masters).length) {
@@ -110,6 +184,7 @@ async function boot() {
   buildCategories();
   initMap(state.master);
   wireUi();
+  buildSavePicker();
   connect();
 
   // Language changes only ever affect text, so nothing needs reloading.
@@ -173,6 +248,11 @@ function initMap(masterId) {
     onHover: handleHover,
   });
   map.fit();
+
+  // Dragging the map is a deliberate look-somewhere-else, so it releases
+  // follow. Wheel zoom deliberately does not. This lives here rather than in
+  // wireUi() because switchMaster() replaces the canvas on every layer change.
+  map.canvas.addEventListener('pointerdown', () => setFollow(false));
 }
 
 /* ------------------------------------------------------------ marker draw */
@@ -403,6 +483,30 @@ function playerTarget() {
              angle: null, live: false, roundtable: false };
   }
   return null;
+}
+
+/**
+ * Follow mode. Engaged, every new position re-centres the map and a cross-map
+ * move switches the layer with you. It stays engaged while the position is
+ * unknown - only clicking the button again, or dragging the map, releases it -
+ * so turning it on before the game is running does the right thing once the
+ * reader attaches.
+ */
+function setFollow(on) {
+  if (state.followPlayer === on) return;
+  state.followPlayer = on;
+  const btn = $('goto-player');
+  btn.classList.toggle('active', on);
+  btn.title = on ? t('zoom.following') : t('zoom.player');
+  if (on) recentreOnPlayer();
+}
+
+function recentreOnPlayer() {
+  if (!state.followPlayer) return;
+  const p = playerTarget();
+  if (!p) return;
+  if (p.master && p.master !== state.master) switchMaster(p.master);
+  map.centerOn(p.px, p.py, Math.max(map.scale, 1.2));
 }
 
 function drawPlayer(ctx, m) {
@@ -667,8 +771,16 @@ function buildCategories() {
     const row = document.createElement('div');
     row.className = 'cat' + (state.enabled.has(key) ? '' : ' off');
     row.dataset.cat = key;
+    // 50-odd item categories is too many to tell apart by colour alone, so a
+    // category that has an icon shows it in place of the swatch.
+    const icon = CATS[key].icon;
+    // Not loading="lazy": these are ~50 small PNGs off the local server, and a
+    // lazy swatch stays blank whenever the sidebar is scrolled or collapsed.
+    const swatch = icon
+      ? `<img class="swatch icon" src="icons/categories/${icon}" alt="">`
+      : `<span class="swatch" style="background:${CATS[key].color}"></span>`;
     row.innerHTML = `
-      <span class="swatch" style="background:${CATS[key].color}"></span>
+      ${swatch}
       <span class="label">${escapeHtml(catLabel(key))}<span class="minibar"><i style="width:0%"></i></span></span>
       <span class="count">0/0</span>`;
     row.onclick = () => {
@@ -678,6 +790,57 @@ function buildCategories() {
     };
     wrap.appendChild(row);
   }
+}
+
+/**
+ * The save picker: one dropdown for the save extension (vanilla .sl2, Reforged
+ * .err, whatever else is installed) and one for the file itself, labelled by
+ * the characters inside it rather than the Steam account id.
+ */
+function buildSavePicker() {
+  const extension = $('save-extension');
+  const file = $('save-file');
+  const extensions = [...new Set(state.saves.map((save) => save.extension))];
+  const selected = state.saves.find((save) => save.path === state.savePath);
+  extension.innerHTML = extensions.map((value) =>
+    `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+  extension.value = (selected && selected.extension) || extensions[0] || '';
+
+  const renderFiles = () => {
+    const matches = state.saves.filter((save) => save.extension === extension.value);
+    file.innerHTML = matches.map((save) => {
+      const chars = save.characters || [];
+      const label = chars.length
+        ? chars.map((c) => `${c.name} · ${t('char.level')} ${c.level}`).join(' / ')
+        : `${t('save.account')} ${save.account}`;
+      return `<option value="${escapeHtml(save.path)}" title="${escapeHtml(save.path)}">${escapeHtml(label)}</option>`;
+    }).join('');
+    const current = matches.find((save) => save.path === state.savePath);
+    file.value = (current && current.path) || (matches[0] && matches[0].path) || '';
+    file.disabled = matches.length === 0;
+  };
+
+  extension.onchange = renderFiles;
+  file.onchange = async () => {
+    if (!file.value || file.value === state.savePath) return;
+    extension.disabled = true;
+    file.disabled = true;
+    try {
+      const response = await fetch('api/saves', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: file.value }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || t('save.switchFailed'));
+      state.savePath = result.current;
+    } catch (error) {
+      toast(t('save.switchFailed'), error.message);
+    } finally {
+      extension.disabled = false;
+      renderFiles();          // also re-enables the file select
+    }
+  };
+  renderFiles();
 }
 
 function refreshCounts() {
@@ -697,17 +860,26 @@ function refreshCounts() {
 }
 
 function wireUi() {
+  // Collapsible panels: every [data-collapse] header folds its own section.
+  document.querySelectorAll('[data-collapse]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.panel');
+      if (section) section.classList.toggle('collapsed');
+    });
+  });
+
+  // ...and the whole sidebar, so the map can have the full window.
+  const app = $('app');
+  $('sb-collapse').onclick = () => app.classList.add('sb-collapsed');
+  $('sb-expand').onclick = () => app.classList.remove('sb-collapsed');
+
   $('zoom-in').onclick = () => map.zoomBy(1.6);
   $('zoom-out').onclick = () => map.zoomBy(1 / 1.6);
   $('zoom-fit').onclick = () => map.fit();
   $('goto-player').onclick = () => {
-    const p = playerTarget();
-    if (p) {
-      if (p.master && p.master !== state.master) switchMaster(p.master);
-      map.flyTo(p.px, p.py, Math.max(map.scale, 1.2));
-    } else {
-      toast(t('zoom.noPlayer'), t('zoom.noPlayerSub'));
-    }
+    if (state.followPlayer) { setFollow(false); return; }
+    if (!playerTarget()) toast(t('zoom.noPlayer'), t('zoom.noPlayerSub'));
+    setFollow(true);      // engage regardless: it takes effect once a fix arrives
   };
 
   $('hide-found').onchange = (e) => { state.hideFound = e.target.checked; map.requestDraw(); };
@@ -715,7 +887,6 @@ function wireUi() {
   const gi = $('show-icons');
   if (gi) {
     gi.checked = state.showIcons;
-    gi.disabled = !state.icons;
     gi.onchange = (e) => { state.showIcons = e.target.checked; map.requestDraw(); };
   }
 
@@ -787,6 +958,16 @@ function connect() {
     try {
       const p = JSON.parse(ev.data);
       state.livePos = p;
+      recentreOnPlayer();
+      // The server matches the running character to a save slot by position.
+      // Swap the displayed progress over when that answer changes.
+      const active = state.characters.find((character) => character.slot === p.slot);
+      if (active && active !== state.character) {
+        state.character = active;
+        state.found = new Set(active.found || []);
+        renderCharacter(active);
+        refreshCounts();
+      }
       if (map) map.requestDraw();
     } catch { /* ignore a malformed frame */ }
   });
@@ -816,21 +997,28 @@ function applyState(s) {
   // Every snapshot carries the live reader's state. Without this the badge
   // stayed blank on a fresh page load until the status happened to change.
   if (s.live) state.liveStatus = s.live.status;
-  const c = (s.characters || [])[0];
+  state.savePath = s.savePath || state.savePath;
+
+  // The server projects each save position with the same affine as the markers.
+  // Every slot is converted, not just the displayed one, because a `pos` frame
+  // can switch to any of them without another snapshot arriving first.
+  state.characters = (s.characters || []).map((c) => {
+    const mp = c.mapPixel;
+    return { ...c, mapPixel: mp ? [mp.px, mp.py] : null, mapMaster: mp ? mp.master : null };
+  });
+
+  // Show the slot the live reader matched to the running game; without a live
+  // feed there is nothing to match against, so fall back to the first slot.
+  const c = state.characters.find((x) => x.slot === s.activeSlot) || state.characters[0];
   if (!c) { $('char-name').textContent = t('app.noCharacter'); return; }
 
-  const prevFound = state.found;
   state.found = new Set(c.found || []);
   state.character = c;
-
-  // the server projects the save position with the same affine as the markers
-  const mp = c.mapPixel;
-  c.mapPixel = mp ? [mp.px, mp.py] : null;
-  c.mapMaster = mp ? mp.master : null;
 
   renderCharacter(c);
   refreshCounts();
   if (map) map.requestDraw();
+  recentreOnPlayer();
 
   for (const n of (s.newlyFound || [])) {
     for (const id of n.ids.slice(0, 4)) {

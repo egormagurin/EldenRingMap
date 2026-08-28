@@ -45,21 +45,61 @@ function parseArgs(argv) {
   return out;
 }
 
-/** %APPDATA%/EldenRing/<steamId>/ER0000.sl2 - pick the most recently written. */
+/**
+ * %APPDATA%/EldenRing/<steamId>/ER0000.{err,sl2} - pick the most recent.
+ * Elden Ring Reforged saves as ER0000.err, vanilla as ER0000.sl2, and both may
+ * be present. Prefer .err when it is at least as recent, so a modded run is not
+ * masked by a stale vanilla save.
+ */
 function findSave() {
   const appdata = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
   const base = path.join(appdata, 'EldenRing');
-  let best = null;
+  const candidates = [];
   try {
     for (const dir of fs.readdirSync(base)) {
-      const p = path.join(base, dir, 'ER0000.sl2');
-      try {
-        const st = fs.statSync(p);
-        if (!best || st.mtimeMs > best.mtimeMs) best = { path: p, mtimeMs: st.mtimeMs };
-      } catch { /* not a save dir */ }
+      if (!/^\d+$/.test(dir)) continue;
+      for (const ext of ['err', 'sl2']) {
+        const p = path.join(base, dir, `ER0000.${ext}`);
+        try {
+          const st = fs.statSync(p);
+          if (st.isFile()) candidates.push({ path: p, ext, mtimeMs: st.mtimeMs });
+        } catch { /* not present */ }
+      }
     }
   } catch { /* no EldenRing folder */ }
-  return best && best.path;
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs || (a.ext === 'err' ? -1 : 1));
+  return candidates[0].path;
+}
+
+/** Every ER0000.* under the same %APPDATA%/EldenRing root, newest first. */
+function listSaves(selectedPath) {
+  const root = path.dirname(path.dirname(selectedPath));
+  const saves = [];
+  try {
+    for (const account of fs.readdirSync(root)) {
+      if (!/^\d+$/.test(account)) continue;
+      const accountDir = path.join(root, account);
+      for (const file of fs.readdirSync(accountDir)) {
+        const match = /^ER0000\.([a-z0-9]+)$/i.exec(file);
+        if (!match) continue;
+        const savePath = path.join(accountDir, file);
+        const stat = fs.statSync(savePath);
+        if (!stat.isFile()) continue;
+        saves.push({ path: savePath, account, extension: `.${match[1].toLowerCase()}`,
+                     mtime: stat.mtimeMs });
+      }
+    }
+  } catch { return []; }
+  return saves.sort((a, b) => b.mtime - a.mtime);
+}
+
+/** Slot names and levels for the save picker. Best-effort: [] if unreadable. */
+function readSaveCharacters(savePath, bst) {
+  try {
+    const reader = new SaveReader(savePath, bst);
+    return reader.read().characters.map((c) => ({ slot: c.slot, name: c.name, level: c.level }));
+  } catch { return []; }
 }
 
 /* ------------------------------------------------------------------- state */
@@ -71,13 +111,16 @@ function loadJson(file, fallback) {
 const projector = new Projector(loadJson(path.join(DATA, 'legacy-conv.json'), null));
 
 /**
- * Markers come from two generated files: markers.json (graces, bosses, POIs,
- * map fragments - built from the param tables) and the optional items.json
- * (item pickups - needs the slower MSB extraction). Either may be absent.
+ * Markers come from three generated files: markers.json (graces, bosses, POIs,
+ * map fragments - built from the param tables), the optional items.json (item
+ * pickups - needs the slower MSB extraction), and the optional pieces.json
+ * (Reforged Rune/Ember Piece collectibles). Any of them may be absent.
  */
 const markerData = loadJson(path.join(DATA, 'markers.json'), { markers: [] });
 const itemData = loadJson(path.join(DATA, 'items.json'), { markers: [] });
-const MARKERS = [...(markerData.markers || []), ...(itemData.markers || [])];
+const pieceData = loadJson(path.join(DATA, 'pieces.json'), { markers: [] });
+const MARKERS = [...(markerData.markers || []), ...(itemData.markers || []),
+                 ...(pieceData.markers || [])];
 const FLAG_MARKERS = MARKERS.filter((m) => m.flag || (m.flags && m.flags.length));
 const MARKER_DOC = { locales: markerData.locales || ['en'], markers: MARKERS };
 
@@ -111,6 +154,26 @@ function computeFound(character) {
 const clients = new Set();
 let current = null;      // last good snapshot sent to clients
 let live = null;         // optional LiveMemory bridge
+let activeSlot = null;   // which save slot the running character is in
+let slotVotes = {};      // slot -> consecutive wins, for the re-match hysteresis
+
+/**
+ * A save holds up to ten characters and the game tells us nothing about which
+ * one is loaded. Each character's save position is a good fingerprint though:
+ * the running character is the slot whose last saved position is nearest the
+ * live one on the same map. Ties resolve themselves as soon as you move.
+ */
+function matchActiveSlot(position) {
+  if (!current || !position) return null;
+  let best = null;
+  for (const character of current.characters) {
+    const saved = character.mapPixel;
+    if (!saved || saved.master !== position.master) continue;
+    const distance = Math.hypot(saved.px - position.px, saved.py - position.py);
+    if (!best || distance < best.distance) best = { slot: character.slot, distance };
+  }
+  return best && best.slot;
+}
 
 function broadcast(event, payload) {
   const frame = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
@@ -169,6 +232,7 @@ function startWatcher(reader, savePath, pollMs) {
         return;
       }
       const prev = current;
+      snap.activeSlot = activeSlot;
       current = snap;
 
       // Report newly-found markers per character so the UI can highlight them.
@@ -190,10 +254,16 @@ function startWatcher(reader, savePath, pollMs) {
     }, 350);
   };
 
-  fs.watchFile(savePath, { interval: pollMs }, (cur, prev) => {
+  // Returns a stop function rather than `refresh`: switching saves has to tear
+  // the old watch down, or both files keep pushing snapshots at the browser.
+  const onChange = (cur, prev) => {
     if (cur.mtimeMs !== prev.mtimeMs) refresh('save changed');
-  });
-  return refresh;
+  };
+  fs.watchFile(savePath, { interval: pollMs }, onChange);
+  return () => {
+    clearTimeout(timer);
+    fs.unwatchFile(savePath, onChange);
+  };
 }
 
 /* -------------------------------------------------------------- http serve */
@@ -247,7 +317,7 @@ function main() {
     return;
   }
 
-  const savePath = args.save || findSave();
+  let savePath = args.save || findSave();
   if (!savePath || !fs.existsSync(savePath)) {
     console.error('Could not find ER0000.sl2.');
     console.error('Pass one explicitly:  node server/index.js --save "C:\\path\\to\\ER0000.sl2"');
@@ -262,7 +332,7 @@ function main() {
     console.warn('warning: data/markers.json is empty - run `python tools/build_markers.py`');
   }
 
-  const reader = new SaveReader(savePath, bst);
+  let reader = new SaveReader(savePath, bst);
   try {
     current = buildSnapshot(reader, savePath);
   } catch (err) {
@@ -270,12 +340,56 @@ function main() {
     process.exit(1);
   }
 
+  let stopWatcher = () => {};
+
+  /**
+   * Point the server at another ER0000.* file. The path must be one listSaves()
+   * discovered: it arrives from the browser, and the alternative is letting any
+   * page on localhost name an arbitrary file for us to open and parse.
+   */
+  const switchSave = (nextPath) => {
+    const allowed = listSaves(savePath).some((entry) => entry.path === nextPath);
+    if (!allowed) throw new Error('save file is outside the discovered Elden Ring profiles');
+    const nextReader = new SaveReader(nextPath, bst);
+    const next = buildSnapshot(nextReader, nextPath);   // parse before tearing down
+    stopWatcher();
+    savePath = nextPath;
+    reader = nextReader;
+    activeSlot = null;
+    slotVotes = {};
+    current = next;
+    if (live && live.pos) activeSlot = matchActiveSlot(live.pos);
+    current.activeSlot = activeSlot;
+    current.live = live ? live.state : null;
+    stopWatcher = startWatcher(reader, savePath, args.poll);
+    broadcast('state', { ...current, newlyFound: [] });
+  };
+
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname;
 
     if (p === '/api/state') return json(res, current);
     if (p === '/api/markers') return json(res, MARKER_DOC);
+
+    if (p === '/api/saves' && req.method === 'GET') {
+      const saves = listSaves(savePath).map((s) => ({
+        ...s,
+        characters: readSaveCharacters(s.path, bst),
+      }));
+      return json(res, { current: savePath, saves });
+    }
+    if (p === '/api/saves' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; if (body.length > 65536) req.destroy(); });
+      req.on('end', () => {
+        try {
+          switchSave(JSON.parse(body).path);
+          json(res, { ok: true, current: savePath });
+        } catch (error) { json(res, { error: error.message }, 400); }
+      });
+      return undefined;
+    }
 
     if (p === '/api/events') {
       res.writeHead(200, {
@@ -317,6 +431,7 @@ data: ${JSON.stringify(live.pos)}
     if (p === '/api/refresh') {
       try {
         current = buildSnapshot(reader, savePath);
+        current.activeSlot = activeSlot;
         broadcast('state', { ...current, newlyFound: [] });
         return json(res, { ok: true });
       } catch (e) { return json(res, { error: e.message }, 500); }
@@ -325,12 +440,32 @@ data: ${JSON.stringify(live.pos)}
     return serveStatic(req, res, p);
   });
 
-  startWatcher(reader, savePath, args.poll);
+  stopWatcher = startWatcher(reader, savePath, args.poll);
 
   if (args.liveMemory) {
     live = new LiveMemory({
       root: ROOT, python: args.python, hz: args.hz,
-      onPos: (p) => broadcast('pos', p),
+      onPos: (p) => {
+        // Re-match on every sample, but require three consecutive wins before
+        // switching. Two characters resting at the same grace, or a frame taken
+        // mid-loading-screen, would otherwise flip the displayed character on a
+        // single bad reading. It also self-corrects a wrong first match.
+        const matched = matchActiveSlot(p);
+        if (matched !== null) {
+          if (matched !== activeSlot) {
+            slotVotes[matched] = (slotVotes[matched] || 0) + 1;
+            if (slotVotes[matched] >= 3) {
+              activeSlot = matched;
+              slotVotes = {};
+            }
+          } else {
+            slotVotes = {};
+          }
+        }
+        p.slot = activeSlot;
+        if (current) current.activeSlot = activeSlot;
+        broadcast('pos', p);
+      },
       onStatus: (st) => { if (current) current.live = st; broadcast('live', st); },
     });
     live.start();
@@ -343,7 +478,9 @@ data: ${JSON.stringify(live.pos)}
     console.log(`  save      ${savePath}`);
     console.log(`  markers   ${MARKERS.length} (${FLAG_MARKERS.length} flag-tracked)` +
       (itemData.markers && itemData.markers.length
-        ? `  incl. ${itemData.markers.length} items` : '  (no items.json - run tools/extract_items.py)'));
+        ? `  incl. ${itemData.markers.length} items` : '  (no items.json - run tools/extract_items.py)') +
+      (pieceData.markers && pieceData.markers.length
+        ? `, ${pieceData.markers.length} pieces` : ''));
     if (c) {
       console.log(`  character ${c.name}, level ${c.level}, ` +
         `${Math.floor(c.secondsPlayed / 3600)}h${String(Math.floor(c.secondsPlayed % 3600 / 60)).padStart(2, '0')}m` +

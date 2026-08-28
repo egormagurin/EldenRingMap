@@ -22,17 +22,23 @@ import time
 import xml.etree.ElementTree as ET
 from collections import Counter
 
-sys.stdout.reconfigure(encoding="utf-8")
+reconfigure = getattr(sys.stdout, "reconfigure", None)
+if reconfigure:
+    reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from PIL import Image
 
 from erlib import dcx, oodle, bnd4, param, paramdef, tpf as tpflib
+import erlib.modfiles as modfiles
 from erlib.dvdbnd import DvdBnd
 from erlib.gamepath import require_game_dir
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFS = os.path.join(ROOT, "data", "paramdefs")
+
+# Image.Resampling only exists from Pillow 9.1; the flat alias works everywhere.
+LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
 
 TPF_PATH = "/menu/hi/01_common.tpf.dcx"
 LAYOUT_PATH = "/menu/hi/01_common.sblytbnd.dcx"
@@ -54,9 +60,10 @@ def sprite_name(icon_id):
     return SPRITE_EXCEPTIONS.get(icon_id, f"MENU_MAP_{icon_id:02d}")
 
 
-def load_atlases(dvd, helper):
+def load_atlases(dvd, helper, mod):
     """-> {spriteName: (sheetName, x, y, w, h)}"""
-    b = bnd4.BND4(dcx.decompress(dvd.read(LAYOUT_PATH), oodle=helper))
+    data = modfiles.read(dvd, mod, LAYOUT_PATH)
+    b = bnd4.BND4(dcx.decompress(data, oodle=helper))
     atlas = {}
     sheets_seen = Counter()
     for e in b.entries:
@@ -70,8 +77,7 @@ def load_atlases(dvd, helper):
         for st in root.iter("SubTexture"):
             nm = (st.get("name") or "").rsplit(".", 1)[0]
             try:
-                rect = (int(st.get("x")), int(st.get("y")),
-                        int(st.get("width")), int(st.get("height")))
+                rect = tuple(int(st.attrib[key]) for key in ("x", "y", "width", "height"))
             except (TypeError, ValueError):
                 continue
             atlas[nm] = (sheet, *rect)
@@ -79,9 +85,9 @@ def load_atlases(dvd, helper):
     return atlas, sheets_seen
 
 
-def used_icon_ids(game):
+def used_icon_ids(game, mod):
     """Every iconId referenced by the params we build markers from."""
-    params = param.load_params(os.path.join(game, "regulation.bin"))
+    params = param.load_params(modfiles.regulation_path(game, mod))
     ids = Counter()
     for pname, dname, field in (("WorldMapPointParam", "WorldMapPointParam", "iconId"),
                                 ("BonfireWarpParam", "BonfireWarpParam", "iconId")):
@@ -98,21 +104,23 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--game-dir", default=None)
+    ap.add_argument("--mod-dir", default=None)
     ap.add_argument("--out", default=os.path.join(ROOT, "web", "icons"))
     args = ap.parse_args()
 
     game = require_game_dir(args.game_dir)
+    mod = modfiles.find_mod_dir(args.mod_dir)
     t0 = time.time()
     dvd = DvdBnd(game, cache_dir=os.path.join(ROOT, "cache"), verbose=False)
     helper = oodle.make_helper(game)
 
     print("reading sprite atlases ...")
-    atlas, sheets_seen = load_atlases(dvd, helper)
+    atlas, sheets_seen = load_atlases(dvd, helper, mod)
     print(f"  {len(atlas)} sprites across "
           + ", ".join(f"{k}={v}" for k, v in sorted(sheets_seen.items())))
 
     print("which icons do the params actually use ...")
-    ids = used_icon_ids(game)
+    ids = used_icon_ids(game, mod)
     print(f"  {len(ids)} distinct iconIds, {sum(ids.values())} references")
 
     wanted = {}
@@ -128,7 +136,8 @@ def main():
     print(f"  {len(wanted)} have a sprite; no sprite for {missing}")
 
     print(f"decoding the {len(SHEETS)} map-cursor sheets ...")
-    tpf_bytes = dcx.decompress(dvd.read(TPF_PATH), oodle=helper)
+    data = modfiles.read(dvd, mod, TPF_PATH)
+    tpf_bytes = dcx.decompress(data, oodle=helper)
     textures = {t.name: t for t in tpflib.parse(tpf_bytes)}
     sheets = {}
     for name in SHEETS:
@@ -151,7 +160,7 @@ def main():
         crop = src.crop((x, y, x + w, y + h))
         if h > MAX_HEIGHT:
             scale = MAX_HEIGHT / h
-            crop = crop.resize((max(1, round(w * scale)), MAX_HEIGHT), Image.LANCZOS)
+            crop = crop.resize((max(1, round(w * scale)), MAX_HEIGHT), LANCZOS)
         path = os.path.join(args.out, f"{icon_id}.png")
         crop.save(path, "PNG", optimize=True)
         index[str(icon_id)] = {"file": f"icons/{icon_id}.png",

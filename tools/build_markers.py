@@ -24,10 +24,13 @@ import sys
 import math
 from collections import defaultdict
 
-sys.stdout.reconfigure(encoding="utf-8")
+reconfigure = getattr(sys.stdout, "reconfigure", None)
+if reconfigure:
+    reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from erlib import param, paramdef, fmg, oodle, dcx
+import erlib.modfiles as modfiles
 from erlib.dvdbnd import DvdBnd
 from erlib.gamepath import require_game_dir
 
@@ -35,7 +38,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DEFS = os.path.join(ROOT, "data", "paramdefs")
 GAME = require_game_dir(sys.argv[1] if len(sys.argv) > 1 else None)
-REG = os.path.join(GAME, "regulation.bin")
+MOD = modfiles.find_mod_dir()
+REG = modfiles.regulation_path(GAME, MOD)
 
 TILE_WORLD = 256
 OFFSET_X = -7168
@@ -125,10 +129,10 @@ def boss_names(dvd, helper, params, defs, name_table):
     read = 0
     for mid in sorted(files):
         path = f"/event/{mid}.emevd.dcx"
-        if not dvd.has(path):
+        if not modfiles.has(dvd, MOD, path):
             continue
         try:
-            raw = dcx.decompress(dvd.read(path), oodle=helper)
+            raw = dcx.decompress(modfiles.read(dvd, MOD, path), oodle=helper)
         except Exception:
             continue
         read += 1
@@ -477,6 +481,8 @@ def merge_colocated(markers):
 
 def main():
     print(f"game dir: {GAME}")
+    if MOD:
+        print(f"mod dir:  {MOD}")
     dvd = DvdBnd(GAME, cache_dir=os.path.join(ROOT, "cache"), verbose=False)
     helper = oodle.make_helper(GAME)
 
@@ -496,9 +502,10 @@ def main():
         tables = {}
         for base_file in ["item.msgbnd.dcx", "item_dlc02.msgbnd.dcx"]:
             path = f"/msg/{folder}/{base_file}"
-            if not dvd.has(path):
+            if not modfiles.has(dvd, MOD, path):
                 continue
-            for fmg_name, table in fmg.load_msgbnd(dvd.read(path), oodle=helper).items():
+            data = modfiles.read(dvd, MOD, path)
+            for fmg_name, table in fmg.load_msgbnd(data, oodle=helper).items():
                 tables.setdefault(fmg_name.split("_dlc")[0], {}).update(table)
         names_by_loc[loc] = tables
         n = len(tables.get("PlaceName", {}))

@@ -21,10 +21,14 @@ import sys
 import time
 from collections import Counter, defaultdict
 
-sys.stdout.reconfigure(encoding="utf-8")
+reconfigure = getattr(sys.stdout, "reconfigure", None)
+if reconfigure:
+    reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from erlib import msb as msblib, param, paramdef, fmg, dcx, oodle
+import erlib.modfiles as modfiles
+import erlib.mfg_categories as mfg_categories
 from erlib.dvdbnd import DvdBnd
 from erlib.gamepath import require_game_dir
 from build_markers import LegacyConv, place, LOCALES
@@ -54,52 +58,35 @@ CATEGORY_TABLES = {
     5: "GemName",
 }
 
-# Items worth their own map layer. Everything else is lumped into "misc" so the
-# map isn't drowned in Smithing Stones.
-NOTABLE = {
-    "seed":     ["golden seed"],
-    "tear":     ["sacred tear", "crystal tear"],
-    "talisman": [],                      # whole AccessoryName category
-    "ash":      [],                      # whole GemName category
-    "cookbook": ["cookbook"],
-    "bearing":  ["bell bearing"],
-    "whetblade": ["whetblade"],
-    "spirit":   ["ashes"],               # spirit summons
-}
+def categorise(iid, names, category):
+    """-> marker category string for one lot's headline item.
 
-
-def categorise(names, category):
-    """-> marker category string for one lot's headline item."""
-    low = (names or "").lower()
-    if category == 4:
-        return "talisman"
-    if category == 5:
-        return "ash"
-    for cat, needles in NOTABLE.items():
-        for n in needles:
-            if n and n in low:
-                return cat
-    if category == 2:
-        return "weapon"
-    if category == 3:
-        return "armor"
-    return "misc"
+    Delegates entirely to the Map-for-Goblins classifier (ported from its
+    open-source repo), which already assigns every item a category; `misc` is
+    its own fallback, so nothing is dropped.
+    """
+    return mfg_categories.categorise(iid, names, category)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--game-dir", default=None)
+    ap.add_argument("--mod-dir", default=None)
     ap.add_argument("--limit", type=int, default=0, help="only N maps (for testing)")
     args = ap.parse_args()
 
     game = require_game_dir(args.game_dir)
+    mod = modfiles.find_mod_dir(args.mod_dir)
+    status = mfg_categories.data_status()
+    if status:
+        print(status)
     t0 = time.time()
     dvd = DvdBnd(game, cache_dir=os.path.join(ROOT, "cache"), verbose=False)
     helper = oodle.make_helper(game)
 
     print("loading params ...")
-    params = param.load_params(os.path.join(game, "regulation.bin"))
+    params = param.load_params(modfiles.regulation_path(game, mod))
     lot_def = paramdef.load(os.path.join(DEFS, "ItemLotParam.xml"))
     conv = LegacyConv(params["WorldMapLegacyConvParam"].rows,
                       paramdef.load(os.path.join(DEFS, "WorldMapLegacyConvParam.xml")))
@@ -112,8 +99,9 @@ def main():
         tables = {}
         for f in ["item.msgbnd.dcx", "item_dlc02.msgbnd.dcx"]:
             p = f"/msg/{folder}/{f}"
-            if dvd.has(p):
-                for k, v in fmg.load_msgbnd(dvd.read(p), oodle=helper).items():
+            if modfiles.has(dvd, mod, p):
+                data = modfiles.read(dvd, mod, p)
+                for k, v in fmg.load_msgbnd(data, oodle=helper).items():
                     tables.setdefault(k.split("_dlc")[0], {}).update(v)
         names_by_loc[loc] = tables
     en = names_by_loc["en"]
@@ -141,10 +129,11 @@ def main():
     stats = Counter()
     for i, map_id in enumerate(map_ids):
         path = f"/map/mapstudio/{map_id}.msb.dcx"
-        if not dvd.has(path):
+        if not modfiles.has(dvd, mod, path):
             continue
         try:
-            m = msblib.load(dcx.decompress(dvd.read(path), oodle=helper))
+            data = modfiles.read(dvd, mod, path)
+            m = msblib.load(dcx.decompress(data, oodle=helper))
         except Exception as exc:
             stats["msb parse failed"] += 1
             continue
@@ -215,7 +204,8 @@ def main():
             continue
         iid, cat, en_name = picked
         loc_names = {loc: (item_name(loc, iid, cat) or en_name) for loc in LOCALES}
-        mcat = categorise(en_name, cat)
+        mcat = categorise(iid, en_name, cat)
+        icon = mfg_categories.icon_for(mcat)
         cat_counts[mcat] += 1
         markers.append({
             "id": f"item:{lot_id}",
@@ -225,6 +215,7 @@ def main():
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
             "map": map_id,
             "lot": lot_id,
+            "icon": icon,
         })
 
     # A projection bug is silent unless you look for it - markers simply land
