@@ -108,8 +108,6 @@ const STRINGS = {
     'master.M11': 'Realm of Shadow — Underground',
 
     'char.level': 'Level',
-    'char.lastSave': 'Last save',
-    'char.runes': 'runes',
     'char.deaths': ['death', 'deaths', 'deaths'],
     'char.hoursShort': 'h',
     'char.minutesShort': 'm',
@@ -125,7 +123,7 @@ const STRINGS = {
     'popup.unmark': 'Unmark',
     'popup.close': 'Close',
 
-    'popup.height': 'Height',
+    'label.height': 'Height',
     'unit.m': 'm',
 
     'tip.found': 'found',
@@ -248,8 +246,6 @@ const STRINGS = {
     'master.M11': 'Царство теней — подземелья',
 
     'char.level': 'Уровень',
-    'char.lastSave': 'Последнее сохранение',
-    'char.runes': 'рун',
     'char.deaths': ['смерть', 'смерти', 'смертей'],
     'char.hoursShort': 'ч',
     'char.minutesShort': 'м',
@@ -265,7 +261,7 @@ const STRINGS = {
     'popup.unmark': 'Снять отметку',
     'popup.close': 'Закрыть',
 
-    'popup.height': 'Высота',
+    'label.height': 'Высота',
     'unit.m': 'м',
 
     'tip.found': 'найдено',

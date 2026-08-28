@@ -474,13 +474,19 @@ document.addEventListener('visibilitychange', () => {
 function playerTarget() {
   const p = state.livePos;
   if (p && Date.now() - p.t < LIVE_STALE_MS) {
-    return { px: p.px, py: p.py, master: p.master, angle: p.angle,
+    // p.h is only present when the server could verify the reading against the
+    // map-screen pixel; in a legacy dungeon it cannot, so fall back to the save.
+    const saved = state.character;
+    const h = typeof p.h === 'number' ? p.h
+            : (saved && typeof saved.mapHeight === 'number' ? saved.mapHeight : null);
+    return { px: p.px, py: p.py, master: p.master, angle: p.angle, h,
              live: true, roundtable: p.roundtable };
   }
   const c = state.character;
   if (c && c.mapPixel) {
     return { px: c.mapPixel[0], py: c.mapPixel[1], master: c.mapMaster,
-             angle: null, live: false, roundtable: false };
+             angle: null, h: typeof c.mapHeight === 'number' ? c.mapHeight : null,
+             live: false, roundtable: false };
   }
   return null;
 }
@@ -643,7 +649,7 @@ function handleClick(sx, sy) {
 function heightBlock(m) {
   if (typeof m.h !== 'number') return '';
   return '<div class="detail">' +
-    `<span class="k">${escapeHtml(t('popup.height'))}</span>` +
+    `<span class="k">${escapeHtml(t('label.height'))}</span>` +
     `<span class="v">${m.h} ${escapeHtml(t('unit.m'))}</span></div>`;
 }
 
@@ -915,6 +921,7 @@ function connect() {
       const p = JSON.parse(ev.data);
       state.livePos = p;
       recentreOnPlayer();
+      renderWhere(state.character);      // the height moves with you
       // The server matches the running character to a save slot by position.
       // Swap the displayed progress over when that answer changes.
       const active = state.characters.find((character) => character.slot === p.slot);
@@ -1006,6 +1013,26 @@ function liveBadge() {
 }
 
 /** Sidebar character panel. Split out so a language switch can re-render it. */
+/**
+ * Your own height, so a marker's number reads as high or low without
+ * arithmetic, plus the live-reader badge. Split out of renderCharacter because
+ * the height moves with you: the position feed calls this on every sample,
+ * which is 20 a second, and re-rendering the whole panel at that rate would
+ * rebuild the stat grid for nothing.
+ */
+function renderWhere(c) {
+  const el = $('char-where');
+  if (!el) return;
+  if (c && !c.position && c.error) {
+    el.innerHTML = `<span style="color:#e05a5a">${escapeHtml(t('err.saveRead'))}: ${escapeHtml(c.error)}</span>`;
+    return;
+  }
+  const you = playerTarget();
+  const h = you && typeof you.h === 'number'
+    ? `${escapeHtml(t('label.height'))} <b>${you.h}</b> ${escapeHtml(t('unit.m'))}` : '';
+  el.innerHTML = h + liveBadge();
+}
+
 function renderCharacter(c) {
   $('char-name').textContent = c.name || '—';
   const secs = c.secondsPlayed || 0;
@@ -1023,19 +1050,7 @@ function renderCharacter(c) {
     ['DEX', st.dexterity], ['INT', st.intelligence], ['FTH', st.faith], ['ARC', st.arcane],
   ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('') : '';
 
-  // Your own height, so a marker's number means something without arithmetic.
-  // It comes from the save position: the live feed reports master-map pixels,
-  // which carry no vertical axis at all, so this is only as fresh as your last
-  // save even while the dot itself is moving in real time.
-  const yourHeight = typeof c.mapHeight === 'number'
-    ? ` · ${c.mapHeight} ${escapeHtml(t('unit.m'))}` : '';
-
-  let where = c.position
-    ? `${escapeHtml(t('char.lastSave'))}: <b>${c.position.mapId}</b>${yourHeight}<br>` +
-      `${st ? st.runes.toLocaleString(I18n.lang === 'ru' ? 'ru-RU' : 'en-US') : '—'} ${escapeHtml(t('char.runes'))}`
-    : (c.error ? `<span style="color:#e05a5a">${escapeHtml(t('err.saveRead'))}: ${escapeHtml(c.error)}</span>` : '');
-  where += liveBadge();
-  $('char-where').innerHTML = where;
+  renderWhere(c);
 
   if (!c.ok && c.error) {
     $('foot').textContent = `${t('err.parse')}: ${c.error}`;

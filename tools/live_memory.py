@@ -45,7 +45,35 @@ SIGS = {
     "CSMenuManImp": "48 8B 0D ?? ?? ?? ?? 48 8B 49 08 E8 ?? ?? ?? ?? 48 8B D0 48 8B CE E8",
     "GameDataMan":  "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 05 48 8B 40 58 C3 C3",
     "EventFlagMan": "48 8B 3D ?? ?? ?? ?? 48 85 FF ?? ?? 32 C0 E9",
+    "WorldChrMan":  "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88",
 }
+
+# The map screen gives a master-map pixel, which has no vertical axis at all -
+# the only way to a live height is the player's actual world position, which
+# hangs off WorldChrMan.
+#
+# Each chain ends at the address of three floats (x, y, z) in the block's own
+# local frame. The intermediate offsets move between game versions and none of
+# them can be checked from the signature alone, so rather than betting on one,
+# every chain is read and all the readings are sent. The server keeps whichever
+# one is consistent with the map-screen pixel it already trusts (see
+# liveHeight() in server/index.js) and ignores the rest, so a chain that is
+# wrong or has moved yields no height rather than a confident wrong one.
+PLAYER_CHAINS = (
+    (0x1E508, 0x190, 0x68, 0x70),
+    (0x1E508, 0x6B8, 0x68, 0x68, 0x70),
+    (0x1E508, 0x190, 0x18, 0x70),
+    (0x1E508, 0x58, 0x70),
+)
+
+# Anywhere outside this and the read is pointing at something that is not a
+# position. The Lands Between is ~9km across; nothing legitimate is near 1e6.
+WORLD_LIMIT = 100000.0
+
+# Only --probe uses these, to show the same check the server applies.
+TILE_WORLD = 256
+OFFSET_X = -7168
+OFFSET_Y = 16640
 
 # CSMenuManImp -> +0x80 -> +LOC -> +0x24 == Location
 #   struct Location { int32 mapId; float x; float y; int32 underground; float oriDeg; }
@@ -87,11 +115,40 @@ class LiveReader:
             hit = self.proc.scan(sig)
             self.addrs[name] = self.proc.resolve_rip(hit) if hit else None
         self.menu = self.addrs.get("CSMenuManImp")
+        # Only the map screen is required. WorldChrMan is used for the live
+        # height, which is an extra: without it the position still works.
+        self.world = self.addrs.get("WorldChrMan")
         if not self.menu:
             raise RuntimeError(
                 "CSMenuManImp signature not found - the game has probably been "
                 "patched since these patterns were written")
         return True
+
+    def _world_positions(self):
+        """-> [{x,y,z}, ...], one per candidate chain that read plausibly.
+
+        No attempt is made to pick between them here: this side has no way to
+        tell a right answer from a wrong one. The server does that by checking
+        each against the map-screen pixel.
+        """
+        proc = self.proc
+        if proc is None or not self.world:
+            return []
+        out = []
+        for chain in PLAYER_CHAINS:
+            addr = proc.chain(self.world, list(chain))
+            if not addr:
+                continue
+            raw = proc.read(addr, 12)
+            if not raw:
+                continue
+            x, y, z = struct.unpack("<fff", raw)
+            if not all(abs(v) < WORLD_LIMIT for v in (x, y, z)):
+                continue
+            if x == 0.0 and y == 0.0 and z == 0.0:
+                continue
+            out.append({"x": round(x, 3), "y": round(y, 3), "z": round(z, 3)})
+        return out
 
     def _read_location(self, loc_off):
         proc = self.proc
@@ -129,8 +186,7 @@ class LiveReader:
                 return self._pack(got)
         return None
 
-    @staticmethod
-    def _pack(got):
+    def _pack(self, got):
         map_id, x, y, undr, ori = got
         underground = bool(undr & 1)
         if map_id == 10:
@@ -139,7 +195,7 @@ class LiveReader:
             master = "M01" if underground else "M00"
         x0, y0, x1, y1 = ROUNDTABLE_BOX
         in_roundtable = (map_id == 0 and x0 <= x < x1 and y0 <= y < y1)
-        return {
+        frame = {
             "type": "pos",
             "px": round(x, 1), "py": round(y, 1),
             "master": master,
@@ -149,6 +205,10 @@ class LiveReader:
             "roundtable": in_roundtable,
             "t": int(time.time() * 1000),
         }
+        worlds = self._world_positions()
+        if worlds:
+            frame["worlds"] = worlds
+        return frame
 
 
 def run_stream(hz):
@@ -227,6 +287,17 @@ def run_probe():
                         f"angle={loc['angle']:6.1f}  mapId={loc['mapId']} "
                         f"underground={loc['underground']}"
                         + ("  [Roundtable Hold]" if loc["roundtable"] else ""))
+                    # The height check the server does, shown here so a chain
+                    # that has moved with a game patch is visible rather than
+                    # just silently producing no height.
+                    for i, w in enumerate(loc.get("worlds", [])):
+                        block = (loc["px"] - OFFSET_X - TILE_WORLD / 2 - w["x"]) / TILE_WORLD
+                        mapno = (OFFSET_Y - loc["py"] - TILE_WORLD / 2 - w["z"]) / TILE_WORLD
+                        ok = all(abs(v - round(v)) < 0.01 and 0 <= round(v) <= 80
+                                 for v in (block, mapno))
+                        say(f"      chain {i}: x={w['x']:9.1f} y={w['y']:9.1f} "
+                            f"z={w['z']:9.1f}  -> tile {block:7.2f},{mapno:7.2f} "
+                            + ("MATCH - height %d" % round(w["y"]) if ok else "no match"))
             time.sleep(0.1)
         say(f"location offset used: "
             f"{'0x%X' % reader.loc_off if reader.loc_off else 'none found'}")

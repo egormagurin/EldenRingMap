@@ -15,7 +15,7 @@ const path = require('path');
 const os = require('os');
 
 const { SaveReader } = require('./lib/saveParser');
-const { Projector } = require('./lib/project');
+const { Projector, TILE_WORLD, OFFSET_X, OFFSET_Y } = require('./lib/project');
 const { LiveMemory } = require('./lib/liveMemory');
 
 const ROOT = path.join(__dirname, '..');
@@ -163,6 +163,42 @@ let slotVotes = {};      // slot -> consecutive wins, for the re-match hysteresi
  * the running character is the slot whose last saved position is nearest the
  * live one on the same map. Ties resolve themselves as soon as you move.
  */
+/**
+ * Live height, from the player's world position - and the check that decides
+ * whether to believe it.
+ *
+ * The reader cannot tell which of its candidate pointer chains is the right
+ * one, so it sends every reading. The map-screen pixel it also sends is already
+ * trusted, and in the overworld that pixel is a fixed function of the tile and
+ * the block-local x/z:
+ *
+ *     px = block * 256 + 128 + x + OFFSET_X
+ *     py = OFFSET_Y - (mapno * 256 + 128 + z)
+ *
+ * so inverting it recovers the tile the player is standing on - but only if x
+ * and z are genuinely this player's coordinates. A chain pointing at the wrong
+ * struct gives numbers that land between tiles, and is rejected. The reading
+ * that resolves to whole tiles is the real one, and its y is the height.
+ *
+ * Legacy dungeons are deliberately not handled: their coordinates are local to
+ * the dungeon while the pixel is the translated overworld position, so there is
+ * nothing to check against and the save height stands in.
+ */
+const TILE_EPSILON = 0.01;     // 0.1px of map-screen rounding is ~0.0004 tiles
+const TILE_MAX = 80;
+
+function liveHeight(p) {
+  if (!p || !Array.isArray(p.worlds) || typeof p.px !== 'number') return null;
+  for (const w of p.worlds) {
+    const block = (p.px - OFFSET_X - TILE_WORLD / 2 - w.x) / TILE_WORLD;
+    const mapno = (OFFSET_Y - p.py - TILE_WORLD / 2 - w.z) / TILE_WORLD;
+    const whole = (v) => Math.abs(v - Math.round(v)) < TILE_EPSILON
+                      && Math.round(v) >= 0 && Math.round(v) <= TILE_MAX;
+    if (whole(block) && whole(mapno)) return Math.round(w.y);
+  }
+  return null;
+}
+
 function matchActiveSlot(position) {
   if (!current || !position) return null;
   let best = null;
@@ -463,6 +499,9 @@ data: ${JSON.stringify(live.pos)}
           }
         }
         p.slot = activeSlot;
+        const h = liveHeight(p);
+        if (h !== null) p.h = h;
+        delete p.worlds;          // candidate readings are server-side plumbing
         if (current) current.activeSlot = activeSlot;
         broadcast('pos', p);
       },

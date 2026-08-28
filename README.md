@@ -31,8 +31,8 @@ during setup, in about two minutes.
 - **How high up is it.** Hover or click any marker for its height, which is the
   thing you actually want on a 2D map of a very vertical game — the Forge of the
   Giants reads 1969 m, the bottom of the Siofra River well −482 m. Your own
-  height sits in the Character panel to compare against.
-- **Your character** — level, playtime, deaths, all eight stats, runes.
+  height sits in the Character panel to compare against, live as you move.
+- **Your character** — level, playtime, deaths and all eight stats.
 - **Real-time position** (optional) — a dot that moves as you move.
 - **English and Russian**, using the game's own text for every marker name.
 - **Follow mode** — the ◎ button latches, so the map keeps itself centred on you
@@ -151,7 +151,8 @@ listed by the characters inside it rather than by Steam account id.
 |---|---|
 | Drag | pan |
 | Scroll / double-click | zoom |
-| Click a marker | details, how to get there, and a manual check-off button |
+| Hover a marker | its name, category and height |
+| Click a marker | details and a manual check-off button |
 | `/` | jump to search |
 | `Esc` | close popups |
 | ◎ button | follow your character — click again, or drag, to stop |
@@ -382,11 +383,23 @@ they are the centre of the region a fragment reveals, not a thing standing
 anywhere.
 
 The height shows in the tooltip on hover as well as in the popup, and your own
-height sits beside your last-save location in the Character panel, so a marker's
-number means something without doing arithmetic. That one comes from the save:
-the live memory feed reports master-map pixels, which have no vertical axis at
-all, so your height is only as fresh as your last save even while the dot is
-still moving in real time.
+height sits in the Character panel so a marker's number means something without
+doing arithmetic.
+
+Your height is live in real-time mode. The map screen the reader samples has no
+vertical axis, so this reads the player's world position out of `WorldChrMan`
+instead — and rather than trusting a pointer chain that moves between game
+versions, the reader sends every candidate reading and the server keeps only one
+that agrees with the map-screen pixel it already trusts. In the overworld that
+pixel is a fixed function of the tile and your local x/z, so inverting it
+recovers a whole-numbered tile only when the coordinates are genuinely yours. A
+chain that is wrong, or that a patch has moved, produces no height rather than a
+confident wrong one, and your last-saved height stands in. `Check Live Mode.bat`
+shows which chain matched.
+
+Inside legacy dungeons the coordinates are dungeon-local while the pixel is the
+translated overworld position, so there is nothing to check against and the
+save height is used there too.
 
 **Re-run setup** (or `python tools/build_markers.py` and
 `python tools/extract_items.py`) — marker heights come from the generated files,
