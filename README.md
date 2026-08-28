@@ -28,9 +28,10 @@ during setup, in about two minutes.
   are drawn with the real sprites lifted out of the game, not coloured dots.
 - **Live progress.** Found markers turn green, and a popup names whatever you
   just discovered. Progress bars per category.
-- **How high up is it.** Click any marker and it gives you the height, which is
-  the thing you actually want on a 2D map of a very vertical game — the Forge of
-  the Giants reads 1969 m, the bottom of the Siofra River well −482 m.
+- **How high up is it.** Hover or click any marker for its height, which is the
+  thing you actually want on a 2D map of a very vertical game — the Forge of the
+  Giants reads 1969 m, the bottom of the Siofra River well −482 m. Your own
+  height sits in the Character panel to compare against.
 - **Your character** — level, playtime, deaths, all eight stats, runes.
 - **Real-time position** (optional) — a dot that moves as you move.
 - **English and Russian**, using the game's own text for every marker name.
@@ -366,7 +367,7 @@ tool.
 
 Clicking a marker used to answer "how do I get there": the nearest Site of
 Grace, whether it was lit, and the bearing and distance from it and from your
-character. It now answers "how high is it" instead — one number, the way Map
+character. It answers "how high is it" instead now — one number, the way Map
 for Goblins does it.
 
 Height is the useful axis here. The map is flat and the game is not: two markers
@@ -380,9 +381,16 @@ his arena 348 m and 347 m. Map fragments have no height and simply omit the row:
 they are the centre of the region a fragment reveals, not a thing standing
 anywhere.
 
+The height shows in the tooltip on hover as well as in the popup, and your own
+height sits beside your last-save location in the Character panel, so a marker's
+number means something without doing arithmetic. That one comes from the save:
+the live memory feed reports master-map pixels, which have no vertical axis at
+all, so your height is only as fresh as your last save even while the dot is
+still moving in real time.
+
 **Re-run setup** (or `python tools/build_markers.py` and
-`python tools/extract_items.py`) — the height comes from the generated files, so
-existing ones show no height row until they are rebuilt.
+`python tools/extract_items.py`) — marker heights come from the generated files,
+so existing ones show no height until they are rebuilt.
 
 ### 1.4 — item categories, mod support, Linux
 

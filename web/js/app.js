@@ -596,8 +596,10 @@ function handleHover(sx, sy) {
 
   if (hit && hit.marker) {
     const m = hit.marker;
+    const h = typeof m.h === 'number' ? ` · ${m.h} ${t('unit.m')}` : '';
     tip.innerHTML = `<div>${escapeHtml(nameOf(m))}</div>` +
-      `<div class="tt-cat">${catLabel(m.cat)}${isFound(m) ? ' · ' + t('tip.found') : ''}</div>`;
+      `<div class="tt-cat">${catLabel(m.cat)}${h}` +
+      `${isFound(m) ? ' · ' + t('tip.found') : ''}</div>`;
     const [x, y] = map.toScreen(m.px, m.py);
     tip.style.left = x + 'px';
     tip.style.top = y + 'px';
@@ -958,7 +960,12 @@ function applyState(s) {
   // can switch to any of them without another snapshot arriving first.
   state.characters = (s.characters || []).map((c) => {
     const mp = c.mapPixel;
-    return { ...c, mapPixel: mp ? [mp.px, mp.py] : null, mapMaster: mp ? mp.master : null };
+    return {
+      ...c,
+      mapPixel: mp ? [mp.px, mp.py] : null,
+      mapMaster: mp ? mp.master : null,
+      mapHeight: mp && typeof mp.h === 'number' ? mp.h : null,
+    };
   });
 
   // Show the slot the live reader matched to the running game; without a live
@@ -1016,8 +1023,15 @@ function renderCharacter(c) {
     ['DEX', st.dexterity], ['INT', st.intelligence], ['FTH', st.faith], ['ARC', st.arcane],
   ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('') : '';
 
+  // Your own height, so a marker's number means something without arithmetic.
+  // It comes from the save position: the live feed reports master-map pixels,
+  // which carry no vertical axis at all, so this is only as fresh as your last
+  // save even while the dot itself is moving in real time.
+  const yourHeight = typeof c.mapHeight === 'number'
+    ? ` · ${c.mapHeight} ${escapeHtml(t('unit.m'))}` : '';
+
   let where = c.position
-    ? `${escapeHtml(t('char.lastSave'))}: <b>${c.position.mapId}</b><br>` +
+    ? `${escapeHtml(t('char.lastSave'))}: <b>${c.position.mapId}</b>${yourHeight}<br>` +
       `${st ? st.runes.toLocaleString(I18n.lang === 'ru' ? 'ru-RU' : 'en-US') : '—'} ${escapeHtml(t('char.runes'))}`
     : (c.error ? `<span style="color:#e05a5a">${escapeHtml(t('err.saveRead'))}: ${escapeHtml(c.error)}</span>` : '');
   where += liveBadge();

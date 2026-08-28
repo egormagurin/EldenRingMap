@@ -42,6 +42,7 @@ class Projector {
       return {
         px: block * TILE_WORLD + TILE_WORLD / 2 + x + OFFSET_X,
         py: OFFSET_Y - (mapno * TILE_WORLD + TILE_WORLD / 2 + z),
+        h: y,
         area,
       };
     }
@@ -64,7 +65,13 @@ class Projector {
       depth + 1);
   }
 
-  /** position from the save -> { px, py, master } or null. */
+  /**
+   * position from the save -> { px, py, master, h } or null.
+   *
+   * `h` is the world height, translated through the same chain as the
+   * horizontal axes, so it is directly comparable with the `h` on markers
+   * (see LegacyConv.convert in tools/build_markers.py, which mirrors this).
+   */
   project(position) {
     if (!position || !position.mapBytes) return null;
     const b = position.mapBytes;          // [DD, CC, BB, AA]
@@ -73,7 +80,8 @@ class Projector {
     if (!r) return null;
     const master = r.area === 61 ? 'M10'
       : (this.underground.has(`${area},${block}`) ? 'M01' : 'M00');
-    return { px: Math.round(r.px * 10) / 10, py: Math.round(r.py * 10) / 10, master };
+    return { px: Math.round(r.px * 10) / 10, py: Math.round(r.py * 10) / 10,
+             h: Math.round(r.h), master };
   }
 }
 
