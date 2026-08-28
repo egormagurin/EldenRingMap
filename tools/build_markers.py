@@ -175,10 +175,15 @@ class LegacyConv:
         return self.by_block.get((area, block, mapno)) or self.by_block.get((area, block, 0))
 
     def convert(self, area, block, mapno, x, y, z, _depth=0, tier=0):
-        """-> (px, py, dstArea) or None when the game does not place this block."""
+        """-> (px, py, height, dstArea), or None if the game does not place this block.
+
+        `height` is y after the same translation chain the horizontal axes go
+        through, so it is a world height in the destination frame and heights
+        from different blocks are comparable with each other.
+        """
         if area in (60, 61):
             px, py = project(area, block, mapno, x, z, tier)
-            return px, py, area
+            return px, py, y, area
         if _depth > 4:
             return None
         rows = self._rows_for(area, block, mapno)
@@ -198,18 +203,18 @@ class LegacyConv:
 
 
 def place(area, block, mapno, x, y, z, conv, tier=0):
-    """Any (map, local position) -> (px, py, master) or None."""
+    """Any (map, local position) -> (px, py, master, height) or None."""
     r = conv.convert(area, block, mapno, x, y, z, tier=tier)
     if r is None:
         return None
-    px, py, dst_area = r
+    px, py, height, dst_area = r
     if dst_area == 61:
         master = "M10"
     elif (area, block) in UNDERGROUND_BLOCKS:
         master = "M01"
     else:
         master = "M00"
-    return px, py, master
+    return px, py, master, height
 
 
 def nearest_marker(markers, master, px, py, radius):
@@ -296,6 +301,7 @@ def build(params, defs, names_by_loc, conv, boss_name_ids):
             "names": nm,
             "flag": v["eventflagId"],
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
+            "h": round(p[3]),
             "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
             "entity": v["bonfireEntityId"],
             "icon": v["iconId"],
@@ -335,6 +341,7 @@ def build(params, defs, names_by_loc, conv, boss_name_ids):
             "names": nm,
             "flag": v["defeatBossFlagId"] or None,
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
+            "h": round(p[3]),
             "map": f"m{v['bossMapAreaNo']:02d}_{v['bossMapBlockNo']:02d}_{v['bossMapMapNo']:02d}",
         })
 
@@ -373,6 +380,7 @@ def build(params, defs, names_by_loc, conv, boss_name_ids):
                 "names": nm,
                 "flag": v["eventFlagId"] or None,
                 "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
+            "h": round(p[3]),
                 "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
                 "icon": v["iconId"],
                 # non-zero only on the directional sprites (the grace rays and
@@ -386,6 +394,7 @@ def build(params, defs, names_by_loc, conv, boss_name_ids):
             "names": nm,
             "flag": v["eventFlagId"] or None,
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
+            "h": round(p[3]),
             "map": f"m{v['areaNo']:02d}_{v['gridXNo']:02d}_{v['gridZNo']:02d}",
             "icon": v["iconId"],
             "angle": round(v.get("angle") or 0.0, 1) or None,

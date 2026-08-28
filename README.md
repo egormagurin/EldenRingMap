@@ -28,9 +28,9 @@ during setup, in about two minutes.
   are drawn with the real sprites lifted out of the game, not coloured dots.
 - **Live progress.** Found markers turn green, and a popup names whatever you
   just discovered. Progress bars per category.
-- **How to get there.** Click any marker and it tells you the nearest Site of
-  Grace, whether that grace is lit yet, and which way to ride from it — plus how
-  far the place is from where you are.
+- **How high up is it.** Click any marker and it gives you the height, which is
+  the thing you actually want on a 2D map of a very vertical game — the Forge of
+  the Giants reads 1969 m, the bottom of the Siofra River well −482 m.
 - **Your character** — level, playtime, deaths, all eight stats, runes.
 - **Real-time position** (optional) — a dot that moves as you move.
 - **English and Russian**, using the game's own text for every marker name.
@@ -362,6 +362,28 @@ tool.
 
 ## Changelog
 
+### 1.5 — marker height
+
+Clicking a marker used to answer "how do I get there": the nearest Site of
+Grace, whether it was lit, and the bearing and distance from it and from your
+character. It now answers "how high is it" instead — one number, the way Map
+for Goblins does it.
+
+Height is the useful axis here. The map is flat and the game is not: two markers
+a few pixels apart can be a cliff, a lift and a fifteen-minute detour apart, and
+a straight-line bearing quietly implied otherwise.
+
+The extractors now carry the world Y through the same translation chain as the
+horizontal axes, so heights are comparable across maps — the Forge of the Giants
+reads 1969 m, the bottom of the Siofra River well −482 m, Godrick's grace and
+his arena 348 m and 347 m. Map fragments have no height and simply omit the row:
+they are the centre of the region a fragment reveals, not a thing standing
+anywhere.
+
+**Re-run setup** (or `python tools/build_markers.py` and
+`python tools/extract_items.py`) — the height comes from the generated files, so
+existing ones show no height row until they are rebuilt.
+
 ### 1.4 — item categories, mod support, Linux
 
 **47 item categories instead of 11.** Item markers were sorted by name
@@ -459,7 +481,7 @@ you know if you can warp — and the compass direction and distance from it.
 Distances are real metres: one map pixel is one world unit. It also shows how
 far the place is from your character, saying whether that's your live position
 or your last save. Straight-line only, which this game will happily punish you
-for.
+for. (Replaced in 1.5 by the marker height.)
 
 *Also:* the live-reader badge stayed blank on a fresh page load — the server put
 the reader's state in every snapshot, but the client only read it from status

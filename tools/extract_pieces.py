@@ -102,7 +102,7 @@ def main():
             p = place(aa, bb, cc, x, y, z, conv, tier=tier)
             if p is None:
                 continue
-            px, py, master = p
+            px, py, master, height = p
             key = (round(px, 1), round(py, 1), master)
             if key in seen:
                 continue
@@ -116,6 +116,7 @@ def main():
                           for loc in LOCALES},
                 "flag": flag,
                 "master": master, "px": round(px, 1), "py": round(py, 1),
+                "h": round(height),
                 "map": map_id,
                 "icon": icon,
             })

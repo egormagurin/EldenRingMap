@@ -213,6 +213,7 @@ def main():
             "names": loc_names,
             "flag": flag,
             "master": p[2], "px": round(p[0], 1), "py": round(p[1], 1),
+            "h": round(p[3]),
             "map": map_id,
             "lot": lot_id,
             "icon": icon,

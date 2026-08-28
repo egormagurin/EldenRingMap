@@ -628,67 +628,21 @@ function handleClick(sx, sy) {
 /* ----------------------------------------------------------------- popup */
 
 /**
- * "How do I get there?"
+ * How high up is it?
  *
- * The game's data has no routes in it, and nothing here is hand-authored - but
- * the two things you actually navigate by in Elden Ring are derivable: the
- * grace you would warp to, and which way to ride from it.
+ * The extractors carry the world Y through the same translation chain as the
+ * horizontal axes (see LegacyConv.convert in tools/build_markers.py), so these
+ * are comparable across maps: the Forge of the Giants reads ~1970, the Siofra
+ * River well bottom ~-480. A world unit is about a metre.
  *
- * One master pixel is one world unit (see the projection in
- * tools/build_markers.py), and a world unit is about a metre, so these are real
- * in-game distances - in a straight line, which in this game is a real caveat.
+ * Map fragments have no height - they are the centre of the region a fragment
+ * reveals, not a thing standing anywhere - so their row is simply omitted.
  */
-const DIRS = ['dir.N', 'dir.NE', 'dir.E', 'dir.SE', 'dir.S', 'dir.SW', 'dir.W', 'dir.NW'];
-const HERE_PX = 25;          // closer than this and "20 m north" is just noise
-
-/** Compass point from one point to another. North is -y: py = 16640 - worldZ. */
-function bearing(from, to) {
-  const deg = Math.atan2(to.px - from.px, from.py - to.py) * 180 / Math.PI;
-  return t(DIRS[Math.round(((deg + 360) % 360) / 45) % 8]);
-}
-
-function distanceText(px) {
-  return px < 950 ? `${Math.round(px / 10) * 10} ${t('unit.m')}`
-                  : `${(px / 1000).toFixed(1)} ${t('unit.km')}`;
-}
-
-/** Closest Site of Grace on the same map layer - the one you would warp to. */
-function nearestGrace(m) {
-  let best = null, bestD = Infinity;
-  for (const g of state.markers) {
-    if (g.cat !== 'grace' || g.master !== m.master || g.id === m.id) continue;
-    const d = Math.hypot(g.px - m.px, g.py - m.py);
-    if (d < bestD) { bestD = d; best = g; }
-  }
-  return best && { grace: best, dist: bestD };
-}
-
-function relativeTo(from, m) {
-  const d = Math.hypot(m.px - from.px, m.py - from.py);
-  return d < HERE_PX ? t('route.here') : `${distanceText(d)} ${bearing(from, m)}`;
-}
-
-function routeBlock(m) {
-  const rows = [];
-  const near = nearestGrace(m);
-  if (near) {
-    const lit = isFound(near.grace);
-    rows.push([t('route.nearestGrace'),
-      `${escapeHtml(nameOf(near.grace))} · ${relativeTo(near.grace, m)}` +
-      `<span class="${lit ? 'lit' : 'unlit'}"> · ${escapeHtml(lit ? t('route.lit') : t('route.unlit'))}</span>`]);
-  }
-  // The save position tracks the player closely, but it is still only as fresh
-  // as the last save - which can be minutes old. Only the live feed is "now",
-  // so the row says which of the two it is rather than implying either.
-  const you = playerTarget();
-  if (you) {
-    rows.push([t(you.live ? 'route.fromYou' : 'route.fromLastSave'),
-      you.master === m.master ? relativeTo(you, m) : escapeHtml(t('route.otherLayer'))]);
-  }
-  if (!rows.length) return '';
-  return '<div class="route">' +
-    rows.map(([k, v]) => `<span class="k">${escapeHtml(k)}</span><span class="v">${v}</span>`).join('') +
-    `<div class="note">${escapeHtml(t('route.asCrow'))}</div></div>`;
+function heightBlock(m) {
+  if (typeof m.h !== 'number') return '';
+  return '<div class="detail">' +
+    `<span class="k">${escapeHtml(t('popup.height'))}</span>` +
+    `<span class="v">${m.h} ${escapeHtml(t('unit.m'))}</span></div>`;
 }
 
 function showPopup(m) {
@@ -703,7 +657,7 @@ function showPopup(m) {
     <div class="found-state ${found ? 'found-yes' : ''}">
       ${found ? (auto ? t('popup.foundSave') : t('popup.foundManual')) : t('popup.notFound')}
     </div>
-    ${routeBlock(m)}
+    ${heightBlock(m)}
     ${auto ? '' : `<button class="toggle">${found ? t('popup.unmark') : t('popup.mark')}</button>`}
   `;
   const [x, y] = map.toScreen(m.px, m.py);
