@@ -155,9 +155,16 @@ class DvdBnd:
         if self.cache_dir:
             os.makedirs(self.cache_dir, exist_ok=True)
             cached = os.path.join(self.cache_dir, name + ".bhd.dec")
-            if os.path.exists(cached):
+            # The header is the archive's index - file hash -> offset in the .bdt.
+            # A game patch rewrites both together, so a cache left over from
+            # before the patch points at the wrong offsets and every read comes
+            # back as plausible-looking garbage. Re-decrypt whenever the .bhd is
+            # newer than the copy we cached from it.
+            if os.path.exists(cached) and os.path.getmtime(cached) >= os.path.getmtime(bhd):
                 with open(cached, "rb") as f:
                     return f.read()
+            if os.path.exists(cached):
+                self._log(f"  {name}: game has been patched, re-reading the archive index")
         pem = ARCHIVE_KEYS.get(name)
         if pem is None:
             self._log(f"  {name}: no RSA key, skipping")

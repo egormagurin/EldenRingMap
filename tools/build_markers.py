@@ -334,6 +334,49 @@ def dedupe(markers):
     return out
 
 
+# Categories where two rows on the same pixel with the same name really are one
+# place. Leyndell, Royal Capital (m11_00_00) and Leyndell, Ashen Capital
+# (m11_05_00) are two versions of the same map block, so five of its graces get
+# a row - and an event flag - in each, at byte-identical coordinates. Drawn as
+# two stacked pins the Ashen copy, which cannot be lit until the endgame, sits
+# on top of the lit one and reads as an undiscovered grace.
+#
+# Bosses are deliberately NOT merged: Morgott and Godfrey share the Erdtree
+# Sanctuary pixel the same way, but they are two different fights and killing
+# one must not tick off the other. Item pickups are excluded for the same
+# reason - several identical drops genuinely can sit on one spot.
+MERGE_CATS = {"grace", "poi", "region", "landmark", "fragment"}
+MERGE_RADIUS = 2.0          # px on the 10,496 px master
+
+
+def merge_colocated(markers):
+    """Collapse same-place, same-name duplicates into one marker with several flags."""
+    out, taken = [], set()
+    for i, a in enumerate(markers):
+        if i in taken:
+            continue
+        taken.add(i)
+        if a["cat"] not in MERGE_CATS or not a.get("flag"):
+            out.append(a)
+            continue
+        flags = [a["flag"]]
+        for j in range(i + 1, len(markers)):
+            b = markers[j]
+            if j in taken or b["cat"] != a["cat"] or b["master"] != a["master"]:
+                continue
+            if not b.get("flag") or b["names"]["en"] != a["names"]["en"]:
+                continue
+            if math.hypot(a["px"] - b["px"], a["py"] - b["py"]) > MERGE_RADIUS:
+                continue
+            taken.add(j)
+            flags.append(b["flag"])
+        if len(flags) > 1:
+            # The server treats the marker as found when ANY of these is set.
+            a = dict(a, flags=sorted(set(flags)))
+        out.append(a)
+    return out
+
+
 def main():
     print(f"game dir: {GAME}")
     dvd = DvdBnd(GAME, cache_dir=os.path.join(ROOT, "cache"), verbose=False)
@@ -369,6 +412,9 @@ def main():
     print(f"  legacy conv blocks: {len(conv.by_block)}")
 
     markers = dedupe(build(params, defs, names_by_loc, conv))
+    stacked = len(markers)
+    markers = merge_colocated(markers)
+    stacked -= len(markers)
     dvd.close()
 
     by_cat = defaultdict(int)
@@ -381,6 +427,9 @@ def main():
             with_flag += 1
 
     print(f"\nmarkers: {len(markers)}  ({with_flag} carry an event flag)")
+    if stacked:
+        print(f"  merged {stacked} stacked duplicate marker(s) "
+              f"(one place, two map-block versions)")
     print("  by category: " + ", ".join(f"{k}={v}" for k, v in sorted(by_cat.items())))
     print("  by master:   " + ", ".join(f"{k}={v}" for k, v in sorted(by_master.items())))
 

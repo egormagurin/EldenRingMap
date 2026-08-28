@@ -78,7 +78,7 @@ const projector = new Projector(loadJson(path.join(DATA, 'legacy-conv.json'), nu
 const markerData = loadJson(path.join(DATA, 'markers.json'), { markers: [] });
 const itemData = loadJson(path.join(DATA, 'items.json'), { markers: [] });
 const MARKERS = [...(markerData.markers || []), ...(itemData.markers || [])];
-const FLAG_MARKERS = MARKERS.filter((m) => m.flag);
+const FLAG_MARKERS = MARKERS.filter((m) => m.flag || (m.flags && m.flags.length));
 const MARKER_DOC = { locales: markerData.locales || ['en'], markers: MARKERS };
 
 let userState = loadJson(USER_STATE, { checked: {} });
@@ -89,13 +89,21 @@ function saveUserState() {
   } catch (e) { console.error('could not persist user state:', e.message); }
 }
 
-/** Marker ids whose event flag is set for this character. */
+/**
+ * Marker ids whose event flag is set for this character.
+ *
+ * A marker can carry several flags. Leyndell, Royal Capital and Leyndell,
+ * Ashen Capital are two versions of one map block, so five of its graces exist
+ * twice - same pixel, different flag - and build_markers.py folds each pair
+ * into a single marker. Any one of the flags means the player has been there.
+ */
 function computeFound(character) {
   const ef = character._flags;
   if (!ef) return [];
   const found = [];
   for (const m of FLAG_MARKERS) {
-    if (ef.get(m.flag) === true) found.push(m.id);
+    const flags = m.flags || [m.flag];
+    if (flags.some((f) => ef.get(f) === true)) found.push(m.id);
   }
   return found;
 }

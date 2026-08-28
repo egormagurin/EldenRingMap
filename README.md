@@ -18,8 +18,8 @@ during setup, in about two minutes.
 
 - **Four map layers** — The Lands Between, the Underground (Siofra / Ainsel /
   Deeproot), the Realm of Shadow, and the DLC underground.
-- **3,500 markers that track themselves** — 418 Sites of Grace, 208 boss arenas,
-  289 points of interest, 165 unnamed landmarks, 34 map fragments, and **2,389
+- **3,506 markers that track themselves** — 413 Sites of Grace, 208 boss arenas,
+  294 points of interest, 157 unnamed landmarks, 34 map fragments, and **2,400
   item pickups**: Golden Seeds, Sacred Tears, talismans, cookbooks, bell
   bearings, whetblades, weapons and armour.
 - **The game's own map icons** — graces, catacombs, caves, churches and the rest
@@ -210,6 +210,14 @@ Everything else keeps working meanwhile; only the moving dot is affected.
 Re-run `Setup.bat`. Patches occasionally change the map textures and the game
 data the markers come from.
 
+### A grace I've rested at shows as undiscovered
+
+If it's in Leyndell, this was a bug — fixed in 1.2.1. Re-run `Setup.bat` (or
+just `python tools/build_markers.py`) and restart the map.
+
+Elsewhere, check the marker really is the one you think: two different places
+can sit close together, and boss arenas borrow the name of the nearest grace.
+
 ### An item shows as found that I haven't picked up
 
 Some lots are shared between several placements. If one is picked up, the flag
@@ -227,7 +235,7 @@ not always.
 ## Known limitations
 
 - Only the **first occupied save slot** is shown.
-- **Not every item is placed.** 2,389 pickups come from the game's map files;
+- **Not every item is placed.** 2,400 pickups come from the game's map files;
   some others are spawned by event scripts and aren't covered. Enemy drops are
   not included either.
 - **Shadow of the Erdtree items are missing.** The base game ships the DLC's map
@@ -268,6 +276,28 @@ tool.
 ---
 
 ## Changelog
+
+### 1.2.1 — fixes
+
+*Five Leyndell graces never went green.* Leyndell exists twice in the game's
+data — Royal Capital and Ashen Capital — and Elden Throne, Erdtree Sanctuary,
+East Capital Rampart, Queen's Bedchamber and Divine Bridge each get a row and
+an event flag in **both**, at identical map coordinates. The map drew two pins
+on the same pixel, and the Ashen one, which can't be lit until the endgame, sat
+on top of the lit one. A place that exists in two versions of one map block is
+now a single marker carrying both flags, and counts as found when either is
+set. Boss arenas are deliberately left alone: Morgott and Godfrey share the
+Erdtree Sanctuary pixel the same way, but killing one must not tick the other.
+
+*Setup silently broke after a game patch.* The extractor caches the decrypted
+archive index, which a patch rewrites along with the archives themselves. The
+stale cache pointed at the wrong offsets, so every read came back as garbage
+and setup died on `not a BND4`. The cache is now invalidated when the game
+files are newer than it.
+
+Re-extracting against the patched game picks up six pickups the update added —
+the three Spectral Steed Regalia, the Idus Sword, the Ritual Thrusting Shield
+and the Reed Great Katana. Nothing else moved.
 
 ### 1.2 — map icons
 Markers now draw with the game's **own map sprites** — the golden grace ring,
