@@ -347,21 +347,43 @@ function isFound(m) {
   return state.found.has(m.id) || !!state.checked[m.id];
 }
 
-/** Grid-cluster in screen space so low zooms stay readable. */
+const CLUSTER_CELL_PX = 46;     // roughly how big a cluster cell looks on screen
+// Quantised zoom steps per doubling. Coarser steps mean the cell drifts further
+// from CLUSTER_CELL_PX before it snaps back - at 2 it reached 65px and visibly
+// over-merged; 4 holds it to 46-55px.
+const CLUSTER_STEPS = 4;
+
+/**
+ * Grid-cluster so low zooms stay readable.
+ *
+ * The grid is anchored to the map, not to the window. Keying cells off screen
+ * coordinates looks equivalent - the cells are the same size either way - but
+ * toScreen() includes the pan centre, so the whole grid slides under the
+ * markers as you drag and they cross cell boundaries continuously: groups keep
+ * reforming at a zoom level you never changed. Bucketing by master pixel means
+ * panning cannot change membership at all.
+ *
+ * Cell size still has to track zoom to stay a constant size on screen, so it is
+ * quantised to discrete steps rather than following the scale continuously.
+ * Otherwise every notch of the wheel would reshuffle the groups slightly.
+ */
 function cluster(list, m) {
-  const cell = 46;
+  const level = Math.floor(Math.log2(m.scale) * CLUSTER_STEPS) / CLUSTER_STEPS;
+  const cellWorld = CLUSTER_CELL_PX / Math.pow(2, level);
   const grid = new Map();
   for (const mk of list) {
-    const [sx, sy] = m.toScreen(mk.px, mk.py);
-    const key = Math.floor(sx / cell) + ':' + Math.floor(sy / cell);
+    const key = Math.floor(mk.px / cellWorld) + ':' + Math.floor(mk.py / cellWorld);
     let g = grid.get(key);
-    if (!g) { g = { sx: 0, sy: 0, items: [] }; grid.set(key, g); }
-    g.sx += sx; g.sy += sy; g.items.push(mk);
+    if (!g) { g = { px: 0, py: 0, items: [] }; grid.set(key, g); }
+    g.px += mk.px; g.py += mk.py; g.items.push(mk);
   }
   const out = [];
   for (const g of grid.values()) {
     const n = g.items.length;
-    out.push({ sx: g.sx / n, sy: g.sy / n, items: g.items });
+    // toScreen is affine, so projecting the world centroid is the same point
+    // as averaging the projected positions - one call instead of one per item.
+    const [sx, sy] = m.toScreen(g.px / n, g.py / n);
+    out.push({ sx, sy, items: g.items });
   }
   return out;
 }
