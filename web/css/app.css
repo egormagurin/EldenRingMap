@@ -40,12 +40,13 @@ html, body {
   border-right: 1px solid var(--line);
   display: flex; flex-direction: column;
   overflow: hidden;
-  transition: margin-left .22s ease, flex-basis .22s ease, width .22s ease;
+  transition: margin-left .22s ease;
 }
-#app.sb-collapsed #sidebar {
-  margin-left: calc(-1 * var(--sidebar-w));
-  flex-basis: 0; width: 0;
-}
+/* Slide it out of view, and only that. Zeroing the width as well as pulling the
+   margin counts the collapse twice: the sidebar then contributes -320px to the
+   flex line, so the map grows 320px wider than the window and starts at x=-320,
+   which also carries the expand tab off the left edge of the screen. */
+#app.sb-collapsed #sidebar { margin-left: calc(-1 * var(--sidebar-w)); }
 
 #brand {
   padding: 16px 16px 10px;

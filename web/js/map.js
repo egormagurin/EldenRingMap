@@ -56,6 +56,11 @@ class TileMap {
             (sy - r.height / 2) / this.scale + this.cy];
   }
 
+  /** Drop the size observer; the canvas is about to be replaced. */
+  destroy() {
+    if (this._ro) { this._ro.disconnect(); this._ro = null; }
+  }
+
   /* ------------------------------------------------------------- viewport */
 
   resize() {
@@ -271,7 +276,17 @@ class TileMap {
       this.zoomBy(2, e.clientX - r.left, e.clientY - r.top);
     });
 
-    window.addEventListener('resize', () => this.resize());
+    // The canvas has to follow its own box, not just the window's. Collapsing
+    // the sidebar changes the canvas width without a window resize, and the
+    // backing store would keep its old pixel size while the CSS box grew -
+    // leaving the browser to scale the old bitmap up over the new area, which
+    // reads as the whole map stretching sideways.
+    if (typeof ResizeObserver === 'function') {
+      this._ro = new ResizeObserver(() => this.resize());
+      this._ro.observe(this.canvas);
+    } else {
+      window.addEventListener('resize', () => this.resize());
+    }
   }
 }
 

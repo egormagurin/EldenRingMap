@@ -41,7 +41,8 @@ during setup, in about two minutes.
   Ember Pieces, read from the mod's files.
 - Search, marker clustering, manual check-off, and a "hide found" filter.
 - Categories toggle independently, so you can show just Golden Seeds, or just
-  what you haven't picked up yet.
+  what you haven't picked up yet — and the sidebar remembers your choices,
+  folded panels and map layer between sessions.
 
 ---
 
@@ -363,6 +364,27 @@ tool.
 ---
 
 ## Changelog
+
+### 1.6 — the sidebar remembers itself
+
+**Collapsing the sidebar broke the map.** The collapsed rule pulled the sidebar
+`margin-left: -320px` *and* set its width to zero, which counts the collapse
+twice: the sidebar then contributed −320px to the flex line, so the map became
+320px wider than the window and started at x=−320. Its left edge ran off-screen,
+and the ⟩ tab that brings the sidebar back went with it — which is why there
+appeared to be no way to reopen it. It slides now, and nothing else.
+
+**The map stretched.** The canvas backing store only followed the *window*
+resizing, so collapsing the sidebar grew its CSS box while the bitmap kept its
+old pixel size and the browser scaled it up over the gap. It follows its own box
+now, through a `ResizeObserver`.
+
+**The sidebar remembers.** Which categories are on, the three option checkboxes,
+which panels you folded away, whether the sidebar itself is collapsed, and the
+map layer all persist in `localStorage`. A category introduced by a later version
+takes its own default rather than being silently switched off because an older
+saved list did not mention it, and unreadable or unavailable storage falls back
+to the defaults instead of failing.
 
 ### 1.5 — marker height
 

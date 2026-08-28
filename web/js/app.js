@@ -155,6 +155,72 @@ function iconFor(mk) {
 
 let map = null;
 
+/* ---------------------------------------------------------------- prefs */
+
+/**
+ * What the sidebar looked like last time, kept in localStorage. Purely a
+ * convenience: every read and write is wrapped, because localStorage throws
+ * rather than returning null in a private window or with site data blocked,
+ * and losing your panel layout should never take the map down with it.
+ *
+ * `known` records which categories existed when the prefs were written. A
+ * category added by a later version is therefore absent from it, and takes its
+ * own default rather than being silently switched off because an older save
+ * did not list it.
+ */
+const PREFS_KEY = 'er-map-prefs-v1';
+
+function loadPrefs() {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      enabled: [...state.enabled],
+      known: Object.keys(CATS),
+      hideFound: state.hideFound,
+      showLabels: state.showLabels,
+      showIcons: state.showIcons,
+      master: state.master,
+      collapsedPanels: [...document.querySelectorAll('.panel.collapsed[data-panel]')]
+        .map((el) => el.dataset.panel),
+      sidebarCollapsed: document.getElementById('app').classList.contains('sb-collapsed'),
+    }));
+  } catch { /* storage full or unavailable - the UI still works */ }
+}
+
+/** Category toggles and checkboxes, before anything is rendered from them. */
+function applyPrefsToState(prefs) {
+  if (!prefs) return;
+  if (Array.isArray(prefs.enabled)) {
+    const on = new Set(prefs.enabled);
+    const known = new Set(Array.isArray(prefs.known) ? prefs.known : prefs.enabled);
+    state.enabled = new Set(Object.keys(CATS).filter(
+      (k) => (known.has(k) ? on.has(k) : !OFF_BY_DEFAULT.has(k))));
+  }
+  if (typeof prefs.hideFound === 'boolean') state.hideFound = prefs.hideFound;
+  if (typeof prefs.showLabels === 'boolean') state.showLabels = prefs.showLabels;
+  if (typeof prefs.showIcons === 'boolean') state.showIcons = prefs.showIcons;
+}
+
+/** The parts that need the DOM to exist. */
+function applyPrefsToUi(prefs) {
+  if (!prefs) return;
+  for (const name of (prefs.collapsedPanels || [])) {
+    const el = document.querySelector(`.panel[data-panel="${CSS.escape(name)}"]`);
+    if (el) el.classList.add('collapsed');
+  }
+  if (prefs.sidebarCollapsed) document.getElementById('app').classList.add('sb-collapsed');
+  $('hide-found').checked = state.hideFound;
+  $('show-labels').checked = state.showLabels;
+  const gi = $('show-icons');
+  if (gi) gi.checked = state.showIcons;
+}
+
 /* --------------------------------------------------------------- boot */
 
 async function boot() {
@@ -180,10 +246,19 @@ async function boot() {
     $('foot').textContent = t('app.noTiles');
   }
 
+  // Before anything renders, so the categories and checkboxes are built from
+  // last session's choices rather than being built and then corrected.
+  const prefs = loadPrefs();
+  applyPrefsToState(prefs);
+  if (prefs && prefs.master && manifest && manifest.masters && manifest.masters[prefs.master]) {
+    state.master = prefs.master;
+  }
+
   buildLayerButtons();
   buildCategories();
   initMap(state.master);
   wireUi();
+  applyPrefsToUi(prefs);
   buildSavePicker();
   connect();
 
@@ -234,7 +309,7 @@ function initMap(masterId) {
   const info = masterInfo(masterId);
   const fmt = (state.manifest && state.manifest.format) || 'webp';
   const canvas = $('map');
-  if (map) { map.canvas.replaceWith(canvas.cloneNode()); }
+  if (map) { map.destroy(); map.canvas.replaceWith(canvas.cloneNode()); }
 
   map = new TileMap($('map'), {
     tileSize: (state.manifest && state.manifest.tileSize) || 256,
@@ -724,6 +799,7 @@ function switchMaster(id) {
   buildLayerButtons();
   initMap(id);
   refreshCounts();
+  savePrefs();
 }
 
 function buildCategories() {
@@ -748,6 +824,7 @@ function buildCategories() {
     row.onclick = () => {
       if (state.enabled.has(key)) state.enabled.delete(key); else state.enabled.add(key);
       row.classList.toggle('off', !state.enabled.has(key));
+      savePrefs();
       map.requestDraw();
     };
     wrap.appendChild(row);
@@ -827,13 +904,14 @@ function wireUi() {
     btn.addEventListener('click', () => {
       const section = btn.closest('.panel');
       if (section) section.classList.toggle('collapsed');
+      savePrefs();
     });
   });
 
   // ...and the whole sidebar, so the map can have the full window.
   const app = $('app');
-  $('sb-collapse').onclick = () => app.classList.add('sb-collapsed');
-  $('sb-expand').onclick = () => app.classList.remove('sb-collapsed');
+  $('sb-collapse').onclick = () => { app.classList.add('sb-collapsed'); savePrefs(); };
+  $('sb-expand').onclick = () => { app.classList.remove('sb-collapsed'); savePrefs(); };
 
   $('zoom-in').onclick = () => map.zoomBy(1.6);
   $('zoom-out').onclick = () => map.zoomBy(1 / 1.6);
@@ -844,12 +922,12 @@ function wireUi() {
     setFollow(true);      // engage regardless: it takes effect once a fix arrives
   };
 
-  $('hide-found').onchange = (e) => { state.hideFound = e.target.checked; map.requestDraw(); };
-  $('show-labels').onchange = (e) => { state.showLabels = e.target.checked; map.requestDraw(); };
+  $('hide-found').onchange = (e) => { state.hideFound = e.target.checked; savePrefs(); map.requestDraw(); };
+  $('show-labels').onchange = (e) => { state.showLabels = e.target.checked; savePrefs(); map.requestDraw(); };
   const gi = $('show-icons');
   if (gi) {
     gi.checked = state.showIcons;
-    gi.onchange = (e) => { state.showIcons = e.target.checked; map.requestDraw(); };
+    gi.onchange = (e) => { state.showIcons = e.target.checked; savePrefs(); map.requestDraw(); };
   }
 
   $('toggle-all').onclick = () => {
@@ -858,6 +936,7 @@ function wireUi() {
     document.querySelectorAll('.cat').forEach((r) =>
       r.classList.toggle('off', !state.enabled.has(r.dataset.cat)));
     $('toggle-all').textContent = state.enabled.size ? t('panel.selectNone') : t('panel.selectAll');
+    savePrefs();
     map.requestDraw();
   };
 
