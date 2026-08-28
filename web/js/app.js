@@ -533,7 +533,7 @@ function drawPlayer(ctx, m) {
   state.playerRender = r;
 
   const [sx, sy] = m.toScreen(r.px, r.py);
-  const pulse = 10 + Math.sin(performance.now() / 600) * 3;
+  const pulse = 11 + Math.sin(performance.now() / 600) * 3;
 
   // facing cone, when the live feed gives us a heading
   if (r.angle != null) {
@@ -550,18 +550,30 @@ function drawPlayer(ctx, m) {
     ctx.fill();
   }
 
+  // High-contrast player marker: a dark ring always, so the dot reads on both
+  // the dark map and bright snow; the fill is the live colour.
+  const fill = target.live ? '#3fb8ff' : '#ffffff';
+
+  // soft halo
   ctx.beginPath();
-  ctx.arc(sx, sy, pulse, 0, Math.PI * 2);
-  ctx.strokeStyle = target.live ? 'rgba(120,220,255,.5)' : 'rgba(255,255,255,.3)';
-  ctx.lineWidth = 1.5;
+  ctx.arc(sx, sy, pulse + 4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(63,184,255,.22)';
+  ctx.fill();
+
+  // dark outer ring (visible on white snow)
+  ctx.beginPath();
+  ctx.arc(sx, sy, pulse + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(8,10,12,.85)';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
+  // inner dot
   ctx.beginPath();
-  ctx.arc(sx, sy, 5, 0, Math.PI * 2);
-  ctx.fillStyle = target.live ? '#8fe3ff' : '#fff';
+  ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
   ctx.fill();
-  ctx.strokeStyle = '#12181c';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#0a0d10';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   // Keep animating only while there is something to animate.
