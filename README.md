@@ -226,12 +226,15 @@ can sit close together, and boss arenas borrow the name of the nearest grace.
 Some lots are shared between several placements. If one is picked up, the flag
 is set for all of them. This is uncommon.
 
-### Boss names look wrong
+### A boss marker says "Boss arena near …"
 
-They're best-effort. The game's data has boss positions and defeat flags but no
-usable name field, so each boss borrows the name of the nearest landmark. That's
-usually right — a grace beside an arena is normally named after its boss — but
-not always.
+That's the honest fallback for the 19 arenas whose name couldn't be recovered.
+189 of 208 carry the enemy's real name; the rest say which place they're beside
+rather than pretending to be named after it.
+
+One known miss: the Deeproot Depths arena reads "Sorcerer Rogier / Fia's
+Champion". Rogier is summonable there, and his name sits close enough to the
+boss's in the event script to be picked up too.
 
 ---
 
@@ -244,7 +247,7 @@ not always.
 - **Shadow of the Erdtree items are missing.** The base game ships the DLC's map
   art and text, so the DLC map layer and its graces/bosses do appear — but the
   DLC's own map files are only present if you own and have installed it.
-- **Boss names are derived**, as above.
+- **19 of 208 boss arenas have no recoverable name**, as above.
 - A few interior areas the game itself never places on the world map (Roundtable
   Hold, some arenas) are skipped.
 
@@ -279,6 +282,32 @@ tool.
 ---
 
 ## Changelog
+
+### 1.3 — real boss names
+
+Boss markers used to borrow the name of the nearest Site of Grace, because
+`GameAreaParam` has positions and defeat flags but no name field. 194 of 208
+were named after something that wasn't the boss, 83 shared a name with another
+marker, and 14 were just "Boss arena (12_01)".
+
+**189 of 208 now carry the enemy's actual name**, in the game's own English and
+Russian. The name isn't in the params at all — the game sets it when it draws
+the health bar, from an event script — but decompiling EMEVD turned out to be
+unnecessary. That call passes the boss's entity id and its `NpcName` text id in
+the same argument blob a few words apart, and both are exact values already
+known: the entity id equals the defeat flag, and the text id has to be a live
+`NpcName` key. Scanning a 16-byte window around each defeat flag either finds
+the right name or finds nothing.
+
+Fights with more than one name keep all of them, in phase order —
+`Beast Clergyman / Maliketh, the Black Blade`, `Radagon of the Golden Order /
+Elden Beast`, `Crystalian (Staff) / Crystalian (Spear)`. The remaining 19 say
+"Boss arena near <place>" instead of impersonating a grace.
+
+This does **not** give boss *prerequisites* — those live in the event script
+logic, which would need real decompilation. But a marker reading "Night's
+Cavalry" rather than "Warmaster's Shack" already tells you why it isn't there in
+daylight.
 
 ### 1.2.1 — fixes
 

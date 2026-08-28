@@ -19,6 +19,7 @@ translation anchored at per-block base points.
 """
 import json
 import os
+import struct
 import sys
 import math
 from collections import defaultdict
@@ -26,7 +27,7 @@ from collections import defaultdict
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from erlib import param, paramdef, fmg, oodle
+from erlib import param, paramdef, fmg, oodle, dcx
 from erlib.dvdbnd import DvdBnd
 from erlib.gamepath import require_game_dir
 
@@ -49,6 +50,7 @@ DERIVED = {
     "map_of":       {"en": "Map: {}",              "ru": "Карта: {}"},
     "map_fragment": {"en": "Map fragment {}",      "ru": "Фрагмент карты {}"},
     "boss_arena":   {"en": "Boss arena ({})",      "ru": "Арена босса ({})"},
+    "boss_near":    {"en": "Boss arena near {}",   "ru": "Арена босса рядом: {}"},
     "landmark":     {"en": "Landmark",             "ru": "Точка на карте"},
     "landmark_near":{"en": "Landmark near {}",     "ru": "Точка рядом: {}"},
 }
@@ -74,6 +76,74 @@ def project(area, grid_x, grid_z, pos_x, pos_z, tier=0):
 
 def master_for_area(area):
     return "M10" if area == 61 else "M00"
+
+
+# ------------------------------------------------------------------ boss names
+
+# GameAreaParam has no name field - `foundBossTextId` is the generic "boss
+# found" message - which is why every boss marker used to borrow the name of the
+# nearest grace. The real name is not in the params at all: the game sets it
+# when it draws the health bar, and that happens in an event script.
+#
+# Decompiling EMEVD is a project in itself, but we do not need to. The
+# health-bar call passes the boss's entity id and its NpcName text id in the
+# same argument blob, within a few words of each other, and both are exact
+# values we already know - the entity id equals the defeat flag, and the text id
+# has to be a live NpcName key. Scanning a small window around each defeat flag
+# therefore either finds the right name or finds nothing; there is very little
+# room to find a plausible wrong one, because a random word happening to be a
+# live NpcName key is vanishingly unlikely (379 keys out of 2^32).
+#
+# Verified: m11_00_00_00 gives 11000800 -> "Morgott, the Omen King". Guessing
+# from the enemy's model would have said "Margit" - both are c2130.
+NAME_WINDOW = 16            # bytes either side of the flag, in 4-byte steps
+
+
+def boss_names(dvd, helper, params, defs, name_table):
+    """-> {defeatBossFlagId: [NpcName id, ...]} read out of the event scripts.
+
+    Several ids is not ambiguity, it is a fight with more than one name:
+    Godfrey/Hoarah Loux, Beast Clergyman/Maliketh, Radagon/Elden Beast, and the
+    duo arenas. Sorting by id puts them in phase order in every case checked.
+    """
+    d = defs["GameAreaParam"]
+    flags, files = {}, {"common", "common_func"}
+    for r in params["GameAreaParam"].rows:
+        v = d.as_dict(r.data, ["defeatBossFlagId", "bossMapAreaNo", "bossMapBlockNo",
+                               "bossMapMapNo"])
+        if not v["defeatBossFlagId"]:
+            continue
+        flags[struct.pack("<I", v["defeatBossFlagId"])] = v["defeatBossFlagId"]
+        files.add("m%02d_%02d_%02d_00" % (v["bossMapAreaNo"], v["bossMapBlockNo"],
+                                          v["bossMapMapNo"]))
+
+    # Id 0 is the "DLC dummy" placeholder. A zero word appears in every event
+    # blob, so leaving it in prefixes every boss on the map with it.
+    live = {k for k, t in name_table.items()
+            if k and t and not t.startswith("%null%")}
+    found = defaultdict(set)
+    read = 0
+    for mid in sorted(files):
+        path = f"/event/{mid}.emevd.dcx"
+        if not dvd.has(path):
+            continue
+        try:
+            raw = dcx.decompress(dvd.read(path), oodle=helper)
+        except Exception:
+            continue
+        read += 1
+        for packed, flag in flags.items():
+            i = raw.find(packed)
+            while i != -1:
+                for delta in range(-NAME_WINDOW, NAME_WINDOW + 1, 4):
+                    j = i + delta
+                    if 0 <= j <= len(raw) - 4:
+                        nid = struct.unpack_from("<I", raw, j)[0]
+                        if nid in live:
+                            found[flag].add(nid)
+                i = raw.find(packed, i + 1)
+    print(f"  event scripts: {read} read, {len(found)}/{len(flags)} bosses named")
+    return {flag: sorted(ids) for flag, ids in found.items()}
 
 
 # --------------------------------------------------------------- legacy dungeons
@@ -157,10 +227,31 @@ def derived_names(key, arg):
 
 # ---------------------------------------------------------------------- builders
 
-def build(params, defs, names_by_loc, conv):
+def build(params, defs, names_by_loc, conv, boss_name_ids):
     """`names_by_loc` is {locale: {fmgName: {id: text}}}."""
     markers = []
     place_tables = {loc: names_by_loc[loc].get("PlaceName", {}) for loc in names_by_loc}
+    npc_tables = {loc: names_by_loc[loc].get("NpcName", {}) for loc in names_by_loc}
+
+    def npc_names(ids):
+        """-> {locale: 'Godfrey, First Elden Lord / Hoarah Loux, Warrior'} or None.
+
+        Resolved per locale from the same ids, so Russian is the game's own text
+        rather than a translation of the English. Identical strings collapse:
+        Morgott's two phases share a name and should not be printed twice.
+        """
+        out = {}
+        for loc in LOCALES:
+            table = npc_tables.get(loc) or {}
+            parts = []
+            for i in ids:
+                text = table.get(i) or npc_tables["en"].get(i, "")
+                if text and not text.startswith("%null%") and text not in parts:
+                    parts.append(text)
+            if not parts:
+                return None
+            out[loc] = " / ".join(parts)
+        return out
 
     def place_names(text_id):
         """-> {locale: name} or None when the id has no usable text.
@@ -221,12 +312,19 @@ def build(params, defs, names_by_loc, conv):
                   v["bossPosX"], v["bossPosY"], v["bossPosZ"], conv)
         if p is None:
             continue
-        # GameAreaParam has no usable name field (foundBossTextId is a generic
-        # "boss found" message), so borrow the nearest named landmark - in this
-        # game the grace beside an arena is usually named after its boss.
-        near = nearest_marker(markers, p[2], p[0], p[1], 170)
-        nm = dict(near["names"]) if near else derived_names(
-            "boss_arena", f"{v['bossMapAreaNo']:02d}_{v['bossMapBlockNo']:02d}")
+        # Prefer the boss's real name, read out of the event scripts. Where the
+        # scripts do not yield one, fall back to the nearest named landmark -
+        # but say "near X" rather than "X", because naming an arena after the
+        # grace beside it is exactly what made these markers misleading.
+        nm = npc_names(boss_name_ids.get(v["defeatBossFlagId"], []))
+        if nm is None:
+            # Graces only. Borrowing from another boss - which now carries a
+            # real enemy name - produces "Boss arena near Malenia".
+            graces = [x for x in markers if x["cat"] == "grace"]
+            near = nearest_marker(graces, p[2], p[0], p[1], 170)
+            nm = ({loc: DERIVED["boss_near"][loc].format(near["names"][loc])
+                   for loc in LOCALES} if near else derived_names(
+                "boss_arena", f"{v['bossMapAreaNo']:02d}_{v['bossMapBlockNo']:02d}"))
         markers.append({
             "id": f"boss:{r.id}",
             "cat": "boss",
@@ -411,7 +509,10 @@ def main():
     conv = LegacyConv(params["WorldMapLegacyConvParam"].rows, defs["WorldMapLegacyConvParam"])
     print(f"  legacy conv blocks: {len(conv.by_block)}")
 
-    markers = dedupe(build(params, defs, names_by_loc, conv))
+    print("reading boss names from the event scripts ...")
+    named = boss_names(dvd, helper, params, defs, names_by_loc["en"].get("NpcName", {}))
+
+    markers = dedupe(build(params, defs, names_by_loc, conv, named))
     stacked = len(markers)
     markers = merge_colocated(markers)
     stacked -= len(markers)
