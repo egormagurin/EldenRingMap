@@ -26,6 +26,9 @@ during setup, in about two minutes.
   are drawn with the real sprites lifted out of the game, not coloured dots.
 - **Live progress.** Found markers turn green, and a popup names whatever you
   just discovered. Progress bars per category.
+- **How to get there.** Click any marker and it tells you the nearest Site of
+  Grace, whether that grace is lit yet, and which way to ride from it — plus how
+  far the place is from where you are.
 - **Your character** — level, playtime, deaths, all eight stats, runes.
 - **Real-time position** (optional) — a dot that moves as you move.
 - **English and Russian**, using the game's own text for every marker name.
@@ -90,7 +93,7 @@ its own.
 |---|---|
 | Drag | pan |
 | Scroll / double-click | zoom |
-| Click a marker | details, plus a manual check-off button |
+| Click a marker | details, how to get there, and a manual check-off button |
 | `/` | jump to search |
 | `Esc` | close popups |
 | ◎ button | centre on your character |
@@ -294,6 +297,26 @@ archive index, which a patch rewrites along with the archives themselves. The
 stale cache pointed at the wrong offsets, so every read came back as garbage
 and setup died on `not a BND4`. The cache is now invalidated when the game
 files are newer than it.
+
+*Clicking a marker did nothing.* `showPopup` declared a local `const t` for the
+check-off button, which shadowed the `t()` translate helper for the whole
+function and put it in the temporal dead zone — so the first `t('popup.close')`
+in the template above it threw `ReferenceError` before `innerHTML` was ever
+assigned. No popup had ever opened.
+
+*New: how to get there.* With the popup working, it now also answers the
+question you actually have when you click a place. The game's data has no routes
+in it and nothing here is hand-written, but the two things you navigate by in
+Elden Ring are derivable: the nearest Site of Grace — with whether it's lit, so
+you know if you can warp — and the compass direction and distance from it.
+Distances are real metres: one map pixel is one world unit. It also shows how
+far the place is from your character, saying whether that's your live position
+or your last save. Straight-line only, which this game will happily punish you
+for.
+
+*Also:* the live-reader badge stayed blank on a fresh page load — the server put
+the reader's state in every snapshot, but the client only read it from status
+*changes*.
 
 Re-extracting against the patched game picks up six pickups the update added —
 the three Spectral Steed Regalia, the Idus Sword, the Ritual Thrusting Shield

@@ -191,6 +191,19 @@ html, body {
 #popup .meta { font-size: 11px; color: var(--dim); margin-bottom: 9px; }
 #popup .found-state { font-size: 12px; margin-bottom: 8px; }
 #popup .found-yes { color: var(--found); }
+#popup .route {
+  border-top: 1px solid var(--line); padding-top: 8px; margin-bottom: 10px;
+  font-size: 12px; line-height: 1.35;
+}
+#popup .route .k {
+  display: block; color: var(--dim); font-size: 10px;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+#popup .route .v { display: block; margin-bottom: 7px; }
+#popup .route .v:last-of-type { margin-bottom: 0; }
+#popup .route .lit { color: var(--found); }
+#popup .route .unlit { color: var(--dim); }
+#popup .route .note { margin-top: 8px; color: var(--dim); font-size: 10px; }
 #popup button {
   width: 100%; padding: 6px; font-size: 12px; cursor: pointer;
   background: var(--panel); color: var(--text);
