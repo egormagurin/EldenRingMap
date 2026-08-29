@@ -1,5 +1,5 @@
 ================================================================================
-STEAM GUIDE COPY — paste-ready
+STEAM GUIDE COPY  —  paste-ready  (updated for v1.6)
 Steam Guides use BBCode, not Markdown. Everything below is already BBCode.
 ================================================================================
 
@@ -10,25 +10,24 @@ TITLE  (pick one)
 
 A live map that fills itself in as you play
 
-Interactive map that tracks your progress automatically — from your save file
+An interactive map that reads your save — and tells you how high everything is
 
-Elden Ring Live Map — an interactive map that reads your save and marks what
-you've found
+Elden Ring Live Map — 3,500 markers that tick themselves off as you play
 
 
 --------------------------------------------------------------------------------
-SHORT DESCRIPTION  (the summary field, ~200 characters)
+SHORT DESCRIPTION  (~205 characters)
 --------------------------------------------------------------------------------
 
-A free interactive map that reads your save file while you play and marks every
-Site of Grace, boss and dungeon you've already found. Runs on your own PC. No
-account, no uploads.
+A free interactive map that reads your save while you play and ticks off every
+grace, boss and item you've found. 3,506 markers, the game's own icons, and the
+height of everything. Runs on your PC.
 
 
---- shorter alternative (~120 chars) ---
+--- shorter alternative (~117 chars) ---
 
 A free interactive map that reads your save and ticks off every grace, boss and
-dungeon you've found. Runs locally.
+item you've found. Runs locally.
 
 
 --------------------------------------------------------------------------------
@@ -40,12 +39,11 @@ FULL GUIDE BODY  (BBCode)
 An interactive map of The Lands Between and the Realm of Shadow that [b]fills
 itself in as you play[/b].
 
-Rest at a new Site of Grace and it lights up. Kill a boss and it gets a
-checkmark. No clicking things off a checklist by hand — it reads your save file
-and keeps up on its own.
+Rest at a new Site of Grace and it lights up. Kill a boss, pick up a Golden
+Seed, and they get a checkmark. Nothing to tick off by hand — it reads your save
+file and keeps up on its own.
 
-It runs entirely on your own PC. There is no website, no account, and nothing is
-ever uploaded.
+It runs entirely on your own PC. No website, no account, nothing uploaded.
 
 [img]PUT_YOUR_SCREENSHOT_URL_HERE[/img]
 
@@ -53,27 +51,42 @@ ever uploaded.
 
 [h1]What it tracks[/h1]
 
+[b]3,506 markers[/b], every one wired to the flag your save actually uses:
+
 [list]
-[*][b]418 Sites of Grace[/b] — every one, across both maps
-[*][b]208 boss arenas[/b] — ticked off as you kill them
-[*][b]289 points of interest[/b] — catacombs, caves, tunnels, landmarks
-[*][b]34 map fragments[/b] — and which region each one reveals
+[*][b]413 Sites of Grace[/b]
+[*][b]208 boss arenas[/b] — 189 named after the actual boss
+[*][b]2,400 item pickups[/b] in [b]47 categories[/b] — Golden Seeds, Crystal
+Tears, talismans, spirit ashes, cookbooks, bell bearings, whetblades, smithing
+stones by tier, golden runes by tier, gloveworts, incantations, sorceries,
+weapons, armour
+[*][b]294 points of interest[/b] and 157 unnamed landmarks
+[*][b]34 map fragments[/b], each showing the region it reveals
 [/list]
 
-Plus a live character panel: level, playtime, deaths, all eight stats and your
-rune count.
+Categories toggle independently, so you can show only Golden Seeds, or only what
+you [i]haven't[/i] picked up yet.
 
-Four separate map layers, so the underground actually works:
-[list]
-[*]The Lands Between
-[*]The Underground (Siofra, Ainsel, Deeproot)
-[*]Realm of Shadow
-[*]Realm of Shadow — Underground
-[/list]
+[h2]How high up is it[/h2]
 
-[b]The map is the real in-game map.[/b] Not a redraw, not a screenshot — the
-actual map textures, pulled out of your own installation and stitched together
-at full resolution.
+The single most useful thing on a 2D map of a very vertical game. Hover or click
+any marker and it tells you its height.
+
+Two markers a few pixels apart can be a cliff, a lift and a fifteen-minute
+detour apart. The Forge of the Giants reads [b]1969 m[/b]; the bottom of the
+Siofra River well reads [b]−482 m[/b]. Your own height sits in the character
+panel to compare against — live, as you move.
+
+[h2]The game's own icons[/h2]
+
+Graces, catacombs, caves, churches, tunnels — drawn with the real sprites lifted
+out of the game files, not coloured dots. It looks like the in-game map because
+it [i]is[/i] the in-game map.
+
+[h2]Four map layers[/h2]
+
+The Lands Between, the Underground (Siofra / Ainsel / Deeproot), the Realm of
+Shadow, and the DLC underground.
 
 [hr][/hr]
 
@@ -83,32 +96,32 @@ Marker names come from the game's own text, so everything reads exactly as it
 does in-game: [i]The First Step[/i] / [i]Первый шаг[/i], [i]Church of Elleh[/i]
 / [i]Храм Элле[/i].
 
-Switch languages with one button. Search works in both at once, so an English
-name from a wiki still finds the right marker while the interface is in Russian.
+One button switches. Search matches both at once, so an English name off a wiki
+still finds the right marker while the interface is in Russian.
 
 [hr][/hr]
 
 [h1]Setup[/h1]
 
-You need [b]Windows[/b], [b]Elden Ring installed[/b], and two free tools:
-[url=https://nodejs.org]Node.js[/url] and [url=https://python.org]Python[/url].
+You need [b]Elden Ring installed[/b], plus [url=https://nodejs.org]Node.js[/url]
+and [url=https://python.org]Python[/url]. Windows 10/11, or Linux with Proton.
 
 [quote]When installing Python, tick [b]"Add Python to PATH"[/b] on the first
-screen of the installer. It is easy to miss and it is the single most common
-thing that goes wrong.[/quote]
+screen. It is easy to miss and it is the most common thing that goes wrong. The
+setup script checks for it and says plainly if it is absent.[/quote]
 
 [olist]
-[*]Download the project from [url=https://github.com/egormagurin/EldenRingMap]GitHub[/url]
-   (green [b]Code[/b] button → [b]Download ZIP[/b]) and unzip it anywhere.
-[*]Double-click [b]Setup.bat[/b]. It finds your game, extracts the map, and
-   builds the marker list. Takes about two minutes.
+[*]Download from [url=https://github.com/egormagurin/EldenRingMap]GitHub[/url]
+(green [b]Code[/b] button, then [b]Download ZIP[/b]) and unzip it anywhere.
+[*]Double-click [b]Setup.bat[/b]. It finds your game and extracts the map, the
+icons and every item location. A couple of minutes.
 [*]Double-click [b]Start Map.bat[/b]. Your browser opens with the map.
 [/olist]
 
-That's it. Setup only needs running again after a game update.
+Leave the little black window open while you play. On Linux, run
+[b]setup-linux.sh[/b] then [b]start-map.sh[/b] instead.
 
-Leave the little black window open while you play — closing it stops the map.
-Your save is found automatically.
+Setup only needs re-running after a game update.
 
 [hr][/hr]
 
@@ -116,36 +129,53 @@ Your save is found automatically.
 
 [list]
 [*][b]Drag[/b] to pan, [b]scroll[/b] to zoom
-[*][b]Click a marker[/b] for details, or to tick it off by hand
-[*][b]/[/b] jumps to the search box
-[*]The [b]◎[/b] button centres the map on your character
-[*][b]Hide found[/b] leaves only what you still haven't picked up — very good
-   for cleanup runs
+[*][b]Click a marker[/b] for its name, height and a manual check-off button
+[*][b]/[/b] jumps to search
+[*][b]◎[/b] latches [b]follow mode[/b] — the map keeps itself centred on you as
+you ride, and switches layer when you go underground
+[*][b]Hide found[/b] leaves only what you still have not collected
 [/list]
+
+The sidebar remembers everything between sessions: which categories are on,
+which panels you folded, the map layer, even whether you collapsed the sidebar
+entirely to give the map the full window.
 
 [h2]On your phone[/h2]
 
-Run [b]"Start Map.bat" --lan[/b] instead. It prints a second address like
-[b]http://192.168.1.42:8099[/b] — open that on your phone or tablet and you have
-a second screen next to you while you play.
+Run [b]"Start Map.bat" --lan[/b]. It prints a second address like
+[b]http://192.168.1.42:8099[/b] — open that on a phone or tablet for a second
+screen beside you while you play.
 
 [hr][/hr]
 
 [h1]Optional: a dot that moves[/h1]
 
-By default the map updates whenever the game saves. Elden Ring saves constantly,
-so your progress is never more than a few seconds stale — but your position
-jumps rather than glides.
+By default the map updates whenever the game saves — which Elden Ring does
+constantly, so progress is never more than a few seconds stale. What it cannot
+do is move your dot smoothly.
 
-[b]Start Map LIVE.bat[/b] adds a player dot that moves smoothly with a facing
-arrow, by reading the running game. It will ask for administrator rights.
+[b]Start Map LIVE.bat[/b] adds a player dot that glides with a facing arrow, and
+a live height readout. It asks for administrator rights, because Elden Ring runs
+elevated.
 
-[quote][b]Offline play only.[/b] Anti-cheat objects to anything that reads game
+[quote][b]Read-only.[/b] It opens the game with read-only access. It cannot
+modify the game and never touches your save.[/quote]
+
+[quote][b]Offline play only.[/b] Anti-cheat objects to anything reading game
 memory, on principle. If you play online, use the normal [b]Start Map.bat[/b] —
-you lose nothing except the moving dot. This mode is for offline or modded
-setups where EAC is not running.[/quote]
+you lose only the moving dot. This mode is for offline or modded setups where
+EAC is not running.[/quote]
 
-Everything else works identically either way.
+Run [b]Check Live Mode.bat[/b] to test whether it can attach.
+
+[hr][/hr]
+
+[h1]Playing Elden Ring Reforged?[/h1]
+
+Supported. Point [b]MODDIR[/b] in [b]Setup.bat[/b] at the mod folder and the
+extractors read the mod's own items, text and map data over the game's — Rune
+and Ember Pieces included. It reads [b]ER0000.err[/b] saves as well as
+[b].sl2[/b].
 
 [hr][/hr]
 
@@ -154,70 +184,70 @@ Everything else works identically either way.
 The normal mode is completely passive:
 
 [list]
-[*]It [b]opens your save file for reading[/b] and never writes to it
-[*]It never touches the game process, and injects nothing
+[*]It [b]opens your save for reading[/b] and never writes to it
+[*]It never touches the game process and injects nothing
 [*]It never connects to the internet
 [/list]
 
-There is nothing for anti-cheat to see, and nothing that can corrupt a save.
+Nothing for anti-cheat to see, and nothing that can corrupt a save.
 
-The optional real-time mode reads the running game's memory. That is still
-read-only and cannot modify anything — but as above, keep it to offline play,
-the same as any mod, FPS unlocker or speedrun timer.
+The optional real-time mode reads the running game's memory. Still read-only and
+unable to modify anything — but keep it to offline play, the same advice that
+applies to any mod, FPS unlocker or speedrun timer.
 
 [hr][/hr]
 
 [h1]Why is there a setup step?[/h1]
 
-Because the map art and the marker names belong to FromSoftware.
-
-Shipping them would mean redistributing their artwork and text. Instead the
-project reads them out of the copy of the game you already own — which is why
-setup takes two minutes, and why nothing in the download looks like a map until
-you run it.
-
-Side effect: it always matches your game version.
+Because the map art and the names belong to FromSoftware. Shipping them would
+mean redistributing their work, so the tool reads them out of the copy of the
+game you already own. Side effect: it always matches your game version, and mods
+work.
 
 [hr][/hr]
 
 [h1]If something goes wrong[/h1]
 
 [b]The window opens and closes instantly[/b]
-Another copy is probably still running. Close the other black window, or end
-[b]node.exe[/b] in Task Manager.
+Another copy is still running and holding the port. Close the other black
+window, or end [b]node.exe[/b] in Task Manager.
 
-[b]"Node.js was not found" or "Python not found"[/b]
+[b]"Node.js not found" or "Python not found"[/b]
 Reinstall with [b]Add to PATH[/b] ticked, then open a [i]new[/i] window — PATH
-changes don't reach windows that were already open.
+changes do not reach windows that were already open.
 
 [b]"Could not find your Elden Ring install"[/b]
-Open [b]Setup.bat[/b] in Notepad and set [b]GAMEDIR[/b] to the folder holding
-[b]eldenring.exe[/b]. In Steam: right-click Elden Ring → Manage → Browse local
-files, then go into the [b]Game[/b] folder.
+Set [b]GAMEDIR[/b] near the top of [b]Setup.bat[/b] to the folder containing
+[b]eldenring.exe[/b]. In Steam: right-click Elden Ring, then Manage, then Browse
+local files, and go into the [b]Game[/b] folder.
 
-[b]Nothing shows as found[/b]
-Only the first save slot is read at the moment. If your character is in a later
-slot, that's a known limitation.
+[b]The wrong character is shown[/b]
+Pick the save from the sidebar. With real-time mode on it matches the running
+character automatically.
 
-[b]The map looks odd after a game update[/b]
-Run [b]Setup.bat[/b] again.
+[b]Markers show no height[/b]
+Re-run [b]Setup.bat[/b] — heights come from the generated files.
 
-The full troubleshooting list lives on the
-[url=https://github.com/egormagurin/EldenRingMap]GitHub page[/url].
+[b]Anything looks wrong after a game update[/b]
+Re-run [b]Setup.bat[/b].
+
+The full list is on the [url=https://github.com/egormagurin/EldenRingMap]GitHub
+page[/url].
 
 [hr][/hr]
 
 [h1]Honest limitations[/h1]
 
 [list]
-[*][b]No item markers yet[/b] — no Golden Seeds, Sacred Tears or talismans.
-   Those live in a part of the game data this doesn't read yet.
-[*][b]Boss names are best-effort.[/b] The game stores boss locations and kill
-   flags but no name, so each one borrows the name of the nearest landmark. It's
-   usually right, because the grace next to an arena is normally named after its
-   boss — but not always.
-[*][b]First save slot only.[/b]
-[*][b]Windows only.[/b]
+[*][b]Not every item is placed.[/b] 2,400 come from the game's map files; some
+others are spawned by event scripts. Enemy drops are not included.
+[*][b]Shadow of the Erdtree items are missing[/b] unless you own and have
+installed the DLC. The DLC map layer, its graces and its bosses appear either
+way.
+[*][b]19 of 208 boss arenas[/b] have no recoverable name and say "Boss arena
+near <place>" instead.
+[*]A few interiors the game itself never maps (Roundtable Hold, some arenas) are
+skipped.
 [/list]
 
 [hr][/hr]
@@ -227,8 +257,8 @@ The full troubleshooting list lives on the
 Free and open source:
 [b][url=https://github.com/egormagurin/EldenRingMap]github.com/egormagurin/EldenRingMap[/url][/b]
 
-If it's useful, a rating on this guide helps other people find it. Bug reports
-and questions are welcome either in the comments or as a GitHub issue.
+If it is useful, a rating helps other people find it. Bugs and questions are
+welcome in the comments or as a GitHub issue.
 
 [i]Not affiliated with FromSoftware or Bandai Namco.[/i]
 
@@ -237,15 +267,34 @@ and questions are welcome either in the comments or as a GitHub issue.
 NOTES BEFORE POSTING
 ================================================================================
 
-1. Replace PUT_YOUR_SCREENSHOT_URL_HERE. Upload the screenshot to your Steam
-   screenshots first, then use its URL — or delete that [img] line entirely.
-   A zoomed-in Limgrave shot with the green checkmarks visible sells it best.
+1. Replace PUT_YOUR_SCREENSHOT_URL_HERE, or delete that [img] line. Upload to
+   your Steam screenshots first and use that URL. The strongest single image is
+   a zoomed Limgrave view with the game's own icons and green checkmarks
+   visible.
 
-2. Post it under Elden Ring → Community → Guides → Create Guide.
-   Category: pick "Walkthroughs" or "Maps or Levels".
+2. Worth adding 3-4 screenshots through the guide rather than one:
+     - the full map with markers
+     - a zoomed view showing the real game icons
+     - a marker popup showing the height
+     - the sidebar with its category progress bars
 
-3. Consider adding 2-3 screenshots through the guide rather than only one:
-   the full map, a zoomed view with labels, and the sidebar with progress bars.
+3. Steam sometimes eats blank lines on paste. Check the preview before
+   publishing and re-add paragraph breaks where they collapsed.
 
-4. Steam sometimes eats blank lines when pasting. Check the preview before
-   publishing, and re-add paragraph breaks where they collapsed.
+4. If you would rather not raise the memory-reading topic on Steam at all,
+   delete the "a dot that moves" section and the second half of "Is this
+   safe?". The guide reads fine without them.
+
+
+================================================================================
+WHAT CHANGED SINCE THE PREVIOUS VERSION OF THIS GUIDE
+================================================================================
+
+  markers        949  ->  3,506
+  categories       5  ->  47
+  boss names   nearest landmark  ->  the actual boss (189 of 208)
+  icons        coloured dots     ->  the game's own sprites
+
+  new sections : height, follow mode, save picker, sidebar memory,
+                 Elden Ring Reforged, Linux
+  removed      : the old "no item markers yet" limitation, which no longer holds
