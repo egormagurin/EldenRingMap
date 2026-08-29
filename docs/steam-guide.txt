@@ -263,6 +263,42 @@ welcome in the comments or as a GitHub issue.
 [i]Not affiliated with FromSoftware or Bandai Namco.[/i]
 
 
+--------------------------------------------------------------------------------
+CHANGELOG BLOCK  (BBCode — paste at the bottom of the guide, above Download)
+--------------------------------------------------------------------------------
+
+[h1]Version history[/h1]
+
+[b]1.6[/b] — The sidebar folds away to give the map the whole window, and
+remembers your categories, panels and map layer between sessions.
+
+[b]1.5[/b] — Every marker tells you [b]how high it is[/b], and so does your
+character. The Forge of the Giants is 1969 m up; the bottom of the Siofra well
+is 482 m down.
+
+[b]1.4[/b] — 47 item categories instead of 11, so "Other items" went from 1,900
+markers to 36. Adds Elden Ring Reforged support, native Linux, follow mode, and
+a save/character picker.
+
+[b]1.3[/b] — Boss markers name [b]the actual boss[/b]. They used to borrow the
+nearest grace's name, so 194 of 208 were wrong. 189 are right now.
+
+[b]1.2.1[/b] — Fixed five Leyndell graces that could never go green, and marker
+popups that never opened at all.
+
+[b]1.2[/b] — Markers draw with [b]the game's own map icons[/b] instead of
+coloured dots.
+
+[b]1.1[/b] — [b]2,400 item pickups[/b] added, each ticking itself off: Golden
+Seeds, tears, talismans, cookbooks, bell bearings and the rest. Marker total
+949 → 3,506.
+
+[b]1.0[/b] — First release. Live map of both worlds, syncing with your save as
+you play.
+
+--------------------------------------------------------------------------------
+
+
 ================================================================================
 NOTES BEFORE POSTING
 ================================================================================
