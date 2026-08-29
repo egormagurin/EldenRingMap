@@ -248,6 +248,7 @@ html, body {
   border-radius: 6px; box-shadow: var(--shadow); padding: 12px 14px;
   transform: translate(-50%, calc(-100% - 14px));
 }
+#popup.below { transform: translate(-50%, 14px); }
 #popup h3 { margin: 0 0 4px; font-size: 14px; color: var(--gold); }
 #popup .meta { font-size: 11px; color: var(--dim); margin-bottom: 9px; }
 #popup .found-state { font-size: 12px; margin-bottom: 8px; }
@@ -261,6 +262,26 @@ html, body {
   text-transform: uppercase; letter-spacing: .07em;
 }
 #popup .detail .v { display: block; font-variant-numeric: tabular-nums; }
+/* Route descriptions run to a paragraph, so give them room and a scrollbar
+   rather than letting one long entry push the buttons off the popup. */
+#popup .route .v {
+  font-variant-numeric: normal; max-height: 168px; overflow-y: auto;
+  padding-right: 4px; text-align: left;
+}
+/* The descriptions bring their own markup - links to the source wiki, lists,
+   the odd bold run - so it has to read in a 300px popup, not a page. */
+#popup .route .v a { color: var(--gold); text-decoration: underline; }
+#popup .route .v a:hover { text-decoration: none; }
+#popup .route .v p { margin: 0 0 6px; }
+#popup .route .v p:last-child { margin-bottom: 0; }
+#popup .route .v ul, #popup .route .v ol { margin: 4px 0; padding-left: 18px; }
+#popup .route .v li { margin-bottom: 3px; }
+#popup .route .v strong, #popup .route .v b { color: var(--text); font-weight: 600; }
+#popup .route .credit {
+  display: block; margin-top: 6px; font-size: 10px; color: var(--dim);
+}
+#popup .route .credit a { color: var(--dim); text-decoration: none; }
+#popup .route .credit a:hover { color: var(--gold); }
 #popup button {
   width: 100%; padding: 6px; font-size: 12px; cursor: pointer;
   background: var(--panel); color: var(--text);

@@ -191,23 +191,50 @@ export ER_MOD_DIR="$MOD_DIR"
 export ER_LINOODLE="$LIB"
 cd "$NATIVE_DIR/runtime"
 
-printf '\n[1/6] Extracting base map tiles...\n'
+printf '\n[1/7] Extracting base map tiles...\n'
 "$PYTHON" "$ROOT/tools/extract_tiles.py" --game-dir "$GAME_DIR"
-printf '\n[2/6] Building marker data...\n'
+printf '\n[2/7] Building marker data...\n'
 "$PYTHON" "$ROOT/tools/build_markers.py" "$GAME_DIR"
-printf '\n[3/6] Indexing map files...\n'
+printf '\n[3/7] Indexing map files...\n'
 "$PYTHON" "$ROOT/tools/enumerate_maps.py"
-printf '\n[4/6] Extracting item locations...\n'
+printf '\n[4/7] Extracting item locations...\n'
 "$PYTHON" "$ROOT/tools/extract_items.py" --game-dir "$GAME_DIR" --mod-dir "$MOD_DIR"
-printf '\n[5/6] Extracting map icons...\n'
+printf '\n[5/7] Extracting map icons...\n'
 "$PYTHON" "$ROOT/tools/extract_icons.py" --game-dir "$GAME_DIR" --mod-dir "$MOD_DIR"
 # Rune and Ember Pieces are Reforged collectibles - an unmodded game has none,
 # so this only runs with a mod directory set.
 if [[ -n "$MOD_DIR" ]]; then
-    printf '\n[6/6] Extracting Reforged rune/ember pieces...\n'
+    printf '\n[6/7] Extracting Reforged rune/ember pieces...\n'
     "$PYTHON" "$ROOT/tools/extract_pieces.py" --game-dir "$GAME_DIR" --mod-dir "$MOD_DIR"
 else
-    printf '\n[6/6] Reforged rune/ember pieces - skipped (ER_MOD_DIR not set)\n'
+    printf '\n[6/7] Reforged rune/ember pieces - skipped (ER_MOD_DIR not set)\n'
+fi
+
+# Everything above came out of your own copy of the game. This step is the one
+# exception, so it asks before it runs. Set ER_TIPS=yes/no to answer in advance
+# and keep setup unattended.
+tips="${ER_TIPS:-}"
+if [[ -z "$tips" ]]; then
+    printf '\n[7/7] Route descriptions (optional)\n\n'
+    printf '  Your markers can now say what a thing is and how high up it is.\n'
+    printf '  What they cannot say is how to get to it - that is not in the\n'
+    printf '  game files, it is something people write. The Fextralife wiki\n'
+    printf '  interactive map has a written route for most of its markers, and\n'
+    printf '  this attaches them to about 2,000 of yours.\n\n'
+    printf '  That text is theirs - not yours, and not the game files - and\n'
+    printf '  their terms ask that it is not fetched automatically. It stays on\n'
+    printf '  this PC for your own use: do not republish it or ship it with a\n'
+    printf '  copy of this tool. The map is complete without it.\n\n'
+    read -r -p '  Fetch them? [y/N] ' tips </dev/tty || tips=n
+fi
+if [[ "$tips" =~ ^[Yy] ]]; then
+    printf '\nFetching route descriptions...\n'
+    # Non-fatal on purpose: no internet, or a changed wiki, must not fail a
+    # setup whose real work is already done.
+    "$PYTHON" "$ROOT/tools/fetch_tips.py" ||
+        printf '\n  Could not fetch them. Everything else is built; markers will\n  just have no "how to get there" text.\n'
+else
+    printf '\n[7/7] Route descriptions - skipped\n'
 fi
 
 printf '\nSetup complete. Run ./start-map.sh to open the live map.\n'

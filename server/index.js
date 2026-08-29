@@ -122,6 +122,23 @@ const pieceData = loadJson(path.join(DATA, 'pieces.json'), { markers: [] });
 const MARKERS = [...(markerData.markers || []), ...(itemData.markers || []),
                  ...(pieceData.markers || [])];
 const FLAG_MARKERS = MARKERS.filter((m) => m.flag || (m.flags && m.flags.length));
+
+/**
+ * Route descriptions, if the user has fetched them (tools/fetch_tips.py).
+ *
+ * Optional and deliberately separate: unlike everything else in data/, this
+ * text is neither the user's own game files nor ours - it is third-party wiki
+ * writing sitting on their disk for their own use. Absent by default, and the
+ * app is complete without it.
+ */
+const tipData = loadJson(path.join(DATA, 'tips.json'), { tips: {} });
+const TIPS = tipData.tips || {};
+let tipped = 0;
+for (const m of MARKERS) {
+  const tip = TIPS[m.id];
+  if (tip && tip.text) { m.tip = tip; tipped++; }
+}
+
 const MARKER_DOC = { locales: markerData.locales || ['en'], markers: MARKERS };
 
 let userState = loadJson(USER_STATE, { checked: {} });
@@ -520,6 +537,10 @@ data: ${JSON.stringify(live.pos)}
         ? `  incl. ${itemData.markers.length} items` : '  (no items.json - run tools/extract_items.py)') +
       (pieceData.markers && pieceData.markers.length
         ? `, ${pieceData.markers.length} pieces` : ''));
+    if (tipped) {
+      console.log(`  tips      ${tipped} route descriptions` +
+        (tipData.credit ? ` via ${tipData.credit}` : ''));
+    }
     if (c) {
       console.log(`  character ${c.name}, level ${c.level}, ` +
         `${Math.floor(c.secondsPlayed / 3600)}h${String(Math.floor(c.secondsPlayed % 3600 / 60)).padStart(2, '0')}m` +

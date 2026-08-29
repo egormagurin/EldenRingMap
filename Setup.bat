@@ -17,9 +17,17 @@ rem mod folder - the one containing the mod's own regulation.bin - and the
 rem setup reads the mod's data over the game's archives.
 rem
 rem   set MODDIR=D:\Games\ELDEN RING Reforged\mod
+rem
+rem Route descriptions - "how do I actually get to this?" - are not in the game
+rem files. They are something people write, so the last step can fetch them from
+rem the Fextralife wiki's interactive map and attach them to your markers. It
+rem asks first; answer here instead to keep setup unattended.
+rem
+rem   set TIPS=yes
 rem ---------------------------------------------------------------------------
 set GAMEDIR=
 set MODDIR=
+set TIPS=
 
 rem The Python tools pick the mod up from the environment.
 if not "%MODDIR%"=="" set "ER_MOD_DIR=%MODDIR%"
@@ -52,30 +60,30 @@ goto :no_python
 %PY% -m pip --version >nul 2>nul
 if errorlevel 1 goto :no_pip
 
-echo   [1/7] Installing Python packages ...
+echo   [1/8] Installing Python packages ...
 %PY% -m pip install --quiet --disable-pip-version-check zstandard pycryptodome pillow texture2ddecoder numpy
 if errorlevel 1 goto :pip_failed
 
-echo   [2/7] Extracting map tiles from your game ^(a couple of minutes^) ...
+echo   [2/8] Extracting map tiles from your game ^(a couple of minutes^) ...
 if "%GAMEDIR%"=="" %PY% tools\extract_tiles.py
 if not "%GAMEDIR%"=="" %PY% tools\extract_tiles.py --game-dir "%GAMEDIR%"
 if errorlevel 1 goto :extract_failed
 
-echo   [3/7] Building the marker dataset ...
+echo   [3/8] Building the marker dataset ...
 if "%GAMEDIR%"=="" %PY% tools\build_markers.py
 if not "%GAMEDIR%"=="" %PY% tools\build_markers.py "%GAMEDIR%"
 if errorlevel 1 goto :markers_failed
 
-echo   [4/7] Indexing the game's map files ...
+echo   [4/8] Indexing the game's map files ...
 %PY% tools\enumerate_maps.py >nul
 if errorlevel 1 goto :items_failed
 
-echo   [5/7] Extracting item locations ^(this reads 864 map files^) ...
+echo   [5/8] Extracting item locations ^(this reads 864 map files^) ...
 if "%GAMEDIR%"=="" %PY% tools\extract_items.py
 if not "%GAMEDIR%"=="" %PY% tools\extract_items.py --game-dir "%GAMEDIR%"
 if errorlevel 1 goto :items_failed
 
-echo   [6/7] Extracting the game's map icons ...
+echo   [6/8] Extracting the game's map icons ...
 if "%GAMEDIR%"=="" %PY% tools\extract_icons.py
 if not "%GAMEDIR%"=="" %PY% tools\extract_icons.py --game-dir "%GAMEDIR%"
 if errorlevel 1 goto :icons_failed
@@ -83,14 +91,44 @@ if errorlevel 1 goto :icons_failed
 rem Rune and Ember Pieces are Reforged collectibles - there are none to find in
 rem an unmodded game, so this step only runs when MODDIR is set.
 if "%MODDIR%"=="" goto :skip_pieces
-echo   [7/7] Extracting Reforged rune/ember pieces ...
+echo   [7/8] Extracting Reforged rune/ember pieces ...
 if "%GAMEDIR%"=="" %PY% tools\extract_pieces.py --mod-dir "%MODDIR%"
 if not "%GAMEDIR%"=="" %PY% tools\extract_pieces.py --game-dir "%GAMEDIR%" --mod-dir "%MODDIR%"
 if errorlevel 1 goto :pieces_failed
 goto :done_pieces
 :skip_pieces
-echo   [7/7] Reforged rune/ember pieces - skipped ^(MODDIR not set^)
+echo   [7/8] Reforged rune/ember pieces - skipped ^(MODDIR not set^)
 :done_pieces
+
+rem Everything above this line was read out of your own copy of the game. This
+rem step is the one exception, so it asks before it runs.
+if /i "%TIPS%"=="yes" goto :do_tips
+if /i "%TIPS%"=="no" goto :skip_tips
+echo.
+echo   [8/8] Route descriptions ^(optional^)
+echo.
+echo   Your markers can now say what a thing is and how high up it is. What
+echo   they cannot say is how to get to it - that is not in the game files,
+echo   it is something people write. The Fextralife wiki's interactive map
+echo   has a written route for most of its markers, and this fetches them
+echo   and attaches them to about 2,000 of yours.
+echo.
+echo   That text is theirs - not yours, and not the game's - and their terms
+echo   ask that it is not fetched automatically. It stays on this PC for your
+echo   own use: do not republish it or ship it with a copy of this tool. The
+echo   map is complete without it.
+echo.
+set "ans="
+set /p ans=  Fetch them? [y/N] 
+if /i not "%ans%"=="y" goto :skip_tips
+:do_tips
+echo   Fetching route descriptions ...
+%PY% tools\fetch_tips.py
+if errorlevel 1 goto :tips_failed
+goto :done_tips
+:skip_tips
+echo   [8/8] Route descriptions - skipped
+:done_tips
 
 echo.
 echo   Done. Start it any time with "Start Map.bat".
@@ -186,6 +224,14 @@ pause & goto :eof
 echo.
 echo   Item extraction failed. The map still works without it - you will just
 echo   have no item markers. Re-run this file to try again.
+echo.
+pause & goto :eof
+
+:tips_failed
+echo.
+echo   Fetching the route descriptions failed - no internet, or the wiki
+echo   changed. Everything else is built and the map works; markers will just
+echo   have no "how to get there" text. Re-run this file to try again.
 echo.
 pause & goto :eof
 

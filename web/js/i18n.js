@@ -125,6 +125,8 @@ const STRINGS = {
 
     'label.height': 'Height',
     'unit.m': 'm',
+    'label.route': 'How to get there',
+    'label.via': 'via',
 
     'tip.found': 'found',
     'tip.markers': ['marker', 'markers', 'markers'],
@@ -263,6 +265,8 @@ const STRINGS = {
 
     'label.height': 'Высота',
     'unit.m': 'м',
+    'label.route': 'Как туда попасть',
+    'label.via': 'источник:',
 
     'tip.found': 'найдено',
     'tip.markers': ['метка', 'метки', 'меток'],

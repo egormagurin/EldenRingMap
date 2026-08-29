@@ -750,6 +750,89 @@ function heightBlock(m) {
     `<span class="v">${m.h} ${escapeHtml(t('unit.m'))}</span></div>`;
 }
 
+/**
+ * How do I get to it?
+ *
+ * The one thing the game files cannot answer. They say what a thing is and
+ * where it stands; the route to it is something a person has to write. So this
+ * block is optional and comes from outside: it appears only if the user ran
+ * tools/fetch_tips.py, and `credit` names whose writing it is.
+ *
+ * The text is whatever the source had, which is English - it stays English in
+ * the Russian UI rather than pretending to be translated.
+ */
+function routeBlock(m) {
+  const tip = m.tip;
+  if (!tip || !tip.text) return '';
+  // Third-party data: only ever emit a plain https link out of it.
+  const href = typeof tip.link === 'string' && /^https:\/\//.test(tip.link) ? tip.link : null;
+  const credit = tip.credit
+    ? `<span class="credit">${escapeHtml(t('label.via'))} ` +
+      (href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">` +
+              `${escapeHtml(tip.credit)} ↗</a>` : escapeHtml(tip.credit)) +
+      '</span>'
+    : '';
+  // `.v` is filled by fillRoute once the popup is in the DOM - the description
+  // is markup written by someone else and is never assigned as innerHTML.
+  return '<div class="detail route">' +
+    `<span class="k">${escapeHtml(t('label.route'))}</span>` +
+    `<span class="v"></span>${credit}</div>`;
+}
+
+// Half of the route descriptions carry markup: links to the source wiki, and
+// some lists and emphasis. Anything outside this set is unwrapped, keeping its
+// text - that quietly discards the img tags and the handful of malformed ones.
+const ROUTE_TAGS = { A: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, BR: 1, P: 1,
+                     UL: 1, OL: 1, LI: 1 };
+
+const EDGE_PAD = 8;     // px the popup keeps clear of the stage edges
+
+/**
+ * Third-party HTML -> a DocumentFragment of nodes we built ourselves.
+ *
+ * The text comes off someone else's website, so it is never handed to
+ * innerHTML. DOMParser gives an inert document - no scripts run, no images
+ * load - and this copies out only whitelisted elements, only ever setting an
+ * href, and only an https one. Everything else about a node, its attributes
+ * included, is dropped rather than sanitised, so there is nothing to get wrong.
+ */
+function safeMarkup(html) {
+  const doc = new DOMParser().parseFromString(String(html), 'text/html');
+  const frag = document.createDocumentFragment();
+  (function walk(src, dst) {
+    for (const node of src.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        dst.appendChild(document.createTextNode(node.nodeValue));
+        continue;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE || !ROUTE_TAGS[node.tagName]) {
+        walk(node, dst);                       // unwrap: keep the words, drop the tag
+        continue;
+      }
+      if (node.tagName === 'A') {
+        const href = node.getAttribute('href') || '';
+        if (!/^https:\/\//i.test(href)) { walk(node, dst); continue; }
+        const a = document.createElement('a');
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        walk(node, a);
+        dst.appendChild(a);
+        continue;
+      }
+      const el = document.createElement(node.tagName.toLowerCase());
+      walk(node, el);
+      dst.appendChild(el);
+    }
+  })(doc.body, frag);
+  return frag;
+}
+
+function fillRoute(el, m) {
+  const box = el.querySelector('.route .v');
+  if (box && m.tip && m.tip.text) box.appendChild(safeMarkup(m.tip.text));
+}
+
 function showPopup(m) {
   state.selected = m.id;
   const el = $('popup');
@@ -763,12 +846,26 @@ function showPopup(m) {
       ${found ? (auto ? t('popup.foundSave') : t('popup.foundManual')) : t('popup.notFound')}
     </div>
     ${heightBlock(m)}
+    ${routeBlock(m)}
     ${auto ? '' : `<button class="toggle">${found ? t('popup.unmark') : t('popup.mark')}</button>`}
   `;
+  fillRoute(el, m);
   const [x, y] = map.toScreen(m.px, m.py);
   el.style.left = x + 'px';
   el.style.top = y + 'px';
-  el.classList.remove('hidden');
+  el.classList.remove('hidden', 'below');
+  // The popup hangs above its marker. A route description can make it three
+  // times its old height, so flip it under the marker when it would otherwise
+  // run off the top of the window and take the close button with it.
+  if (el.getBoundingClientRect().top < EDGE_PAD) el.classList.add('below');
+  // ...and slide it back inside #stage horizontally. The popup is centred on
+  // its marker, so one near either edge hangs half its width off - under the
+  // sidebar on the left, past the zoom buttons on the right.
+  const half = el.offsetWidth / 2;
+  const limit = el.parentElement.clientWidth - half - EDGE_PAD;
+  if (limit > half + EDGE_PAD) {
+    el.style.left = Math.min(Math.max(x, half + EDGE_PAD), limit) + 'px';
+  }
   el.querySelector('.close').onclick = closePopup;
   // NOT `const t` - that would shadow the translate helper used in the template
   // above and put it in the temporal dead zone for the whole function.

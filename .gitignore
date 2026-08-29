@@ -45,3 +45,9 @@ docs/RESEARCH-BRIEF.md
 data/items.json
 data/pieces.json
 cache/map-list.txt
+
+# Fetched by tools/fetch_tips.py. Everything else under data/ comes out of your
+# own copy of the game; this is a third party's writing, kept locally for your
+# own use. It must not be committed or published - see the tool's header.
+data/tips.json
+cache/tips/
