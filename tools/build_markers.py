@@ -152,6 +152,14 @@ def boss_names(dvd, helper, params, defs, name_table):
 
 # --------------------------------------------------------------- legacy dungeons
 
+def anchor_rank(v):
+    """Sort key that puts a block's real anchor row first (see LegacyConv)."""
+    return (0 if v["dstAreaNo"] in (60, 61) else 1,     # lands on the overworld
+            0 if v["isBasePoint"] else 1,               # the game's own base point
+            0 if (v["srcPosX"] or v["srcPosZ"]) else 1, # names a source anchor...
+            0 if (v["dstPosX"] or v["dstPosZ"]) else 1) # ...and a destination one
+
+
 class LegacyConv:
     """WorldMapLegacyConvParam -> translate dungeon-local coords onto the overworld.
 
@@ -163,6 +171,16 @@ class LegacyConv:
     * A block that straddles several overworld cells gets one row per cell. They
       describe the same world point in different cell-local frames, so any of
       them yields identical world coordinates - the choice is arbitrary.
+
+    ...except for three blocks where the rows disagree by hundreds of pixels,
+    because the region's map art is drawn nowhere near where the region connects
+    to the overworld: m13_00_00 (Farum Azula, 3673 px apart), m25_00_00 (the
+    Finger Birthing Grounds, 912) and m15_00_00 (the Haligtree, 661). There the
+    choice is not arbitrary, and choosing per point - nearest source anchor -
+    scatters one region across two places. So the row is picked per block, and
+    picked the way the game does: `isBasePoint` first, then the row that spells
+    an anchor out rather than leaving it at the origin. Every other block's rows
+    agree to within 36 px, so ordering them costs nothing.
     """
 
     def __init__(self, rows, pdef):
@@ -170,6 +188,8 @@ class LegacyConv:
         for r in rows:
             v = pdef.as_dict(r.data)
             self.by_block[(v["srcAreaNo"], v["srcGridXNo"], v["srcGridZNo"])].append(v)
+        for lst in self.by_block.values():
+            lst.sort(key=anchor_rank)
 
     def _rows_for(self, area, block, mapno):
         return self.by_block.get((area, block, mapno)) or self.by_block.get((area, block, 0))
@@ -189,10 +209,7 @@ class LegacyConv:
         rows = self._rows_for(area, block, mapno)
         if not rows:
             return None
-        # prefer a row that lands straight on the overworld
-        direct = [v for v in rows if v["dstAreaNo"] in (60, 61)]
-        pool = direct or rows
-        best = min(pool, key=lambda v: (v["srcPosX"] - x) ** 2 + (v["srcPosZ"] - z) ** 2)
+        best = rows[0]                      # anchor_rank order, so one row per block
         # translate into the destination map's local frame, then keep resolving
         nx = x - best["srcPosX"] + best["dstPosX"]
         ny = y - best["srcPosY"] + best["dstPosY"]
@@ -567,6 +584,7 @@ def main():
                 "srcPos": [round(v["srcPosX"], 2), round(v["srcPosY"], 2), round(v["srcPosZ"], 2)],
                 "dst": [v["dstAreaNo"], v["dstGridXNo"], v["dstGridZNo"]],
                 "dstPos": [round(v["dstPosX"], 2), round(v["dstPosY"], 2), round(v["dstPosZ"], 2)],
+                "base": int(v["isBasePoint"]),
             })
     with open(conv_out, "w", encoding="utf-8") as f:
         json.dump({"rows": rows, "undergroundBlocks": sorted(map(list, UNDERGROUND_BLOCKS))}, f)

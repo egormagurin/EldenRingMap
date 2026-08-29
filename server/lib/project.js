@@ -20,6 +20,21 @@ const TILE_WORLD = 256;
 const OFFSET_X = -7168;
 const OFFSET_Y = 16640;
 
+/**
+ * Sort key that puts a block's real anchor row first.
+ *
+ * A block usually gets one row per overworld cell it straddles, all describing
+ * the same world point, so the choice is arbitrary. Not for Farum Azula, the
+ * Finger Birthing Grounds and the Haligtree, whose rows disagree by hundreds of
+ * pixels - see LegacyConv in tools/build_markers.py.
+ */
+function anchorRank(r) {
+  return [(r.dst[0] === 60 || r.dst[0] === 61) ? 0 : 1,
+          r.base ? 0 : 1,
+          (r.srcPos[0] || r.srcPos[2]) ? 0 : 1,
+          (r.dstPos[0] || r.dstPos[2]) ? 0 : 1];
+}
+
 class Projector {
   constructor(convDoc) {
     this.byBlock = new Map();
@@ -27,6 +42,13 @@ class Projector {
       const key = r.src.join(',');
       if (!this.byBlock.has(key)) this.byBlock.set(key, []);
       this.byBlock.get(key).push(r);
+    }
+    for (const rows of this.byBlock.values()) {
+      rows.sort((a, b) => {                            // Array#sort is stable, so
+        const ka = anchorRank(a), kb = anchorRank(b);  // equal rows keep param order
+        for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i];
+        return 0;
+      });
     }
     this.underground = new Set(
       ((convDoc && convDoc.undergroundBlocks) || []).map((b) => b.join(',')));
@@ -49,14 +71,7 @@ class Projector {
     if (depth > 4) return null;
     const rows = this._rows(area, block, mapno);
     if (!rows || !rows.length) return null;
-    const direct = rows.filter((r) => r.dst[0] === 60 || r.dst[0] === 61);
-    const pool = direct.length ? direct : rows;
-    let best = pool[0];
-    let bestD = Infinity;
-    for (const r of pool) {
-      const d = (r.srcPos[0] - x) ** 2 + (r.srcPos[2] - z) ** 2;
-      if (d < bestD) { bestD = d; best = r; }
-    }
+    const best = rows[0];                    // anchorRank order, so one row per block
     return this._resolve(
       best.dst[0], best.dst[1], best.dst[2],
       x - best.srcPos[0] + best.dstPos[0],

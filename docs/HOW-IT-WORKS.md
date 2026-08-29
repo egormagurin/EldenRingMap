@@ -59,6 +59,18 @@ Legacy dungeons have their own local frames and are translated onto the overworl
 via `WorldMapLegacyConvParam`. Some of its rows hop dungeon→dungeon
 (`m13_00_00 → m34_15_00 → m60_51_46`), so resolution follows chains.
 
+A dungeon that straddles several overworld cells gets one row per cell, and for
+95 of the 98 blocks those rows all describe the same world point in a different
+cell-local frame — they agree to within 36 px, so the choice really is
+arbitrary. Three blocks are not like that. Crumbling Farum Azula's rows disagree
+by 3673 px, the Finger Birthing Grounds' by 912, the Haligtree's by 661, because
+those regions are drawn on the map nowhere near where they connect to the
+overworld — Farum Azula is a floating island out east, but it is entered from
+the Forge of the Giants in the Mountaintops, and there is a row for each. So the
+row is chosen once per block rather than per position, which is what keeps a
+region in one piece: the game's own `isBasePoint` first, then whichever row
+spells an anchor out instead of leaving it at the origin.
+
 Sanity check: "The First Step" lands at px 3699, matching independently published
 values to within a pixel.
 

@@ -365,6 +365,43 @@ tool.
 
 ## Changelog
 
+### 1.7 — Farum Azula lands on its own map
+
+**Crumbling Farum Azula had no markers.** All 102 of them — every grace, both
+bosses, 86 item pickups — were sitting 2,547 px away in the Mountaintops of the
+Giants, beside the Forge of the Giants, while the floating island the game draws
+out east stayed empty.
+
+Legacy dungeons are translated onto the overworld through
+`WorldMapLegacyConvParam`, and a dungeon that straddles several overworld cells
+gets one row per cell. For 95 of the 98 blocks those rows all describe the same
+world point in a different cell-local frame, so choosing between them by nearest
+source anchor is harmless. Farum Azula is one of the three where it is not: its
+four rows disagree by up to 3,673 px, because the island is drawn nowhere near
+where it connects to the overworld. The nearest anchor was the row that says
+Farum Azula's origin *is* the Forge of the Giants — true of the way in, useless
+for the map — and it won for 101 of the 102 markers. The row the game itself
+flags as the base point puts them on the island.
+
+The row is now picked once per block instead of once per marker, so a region
+cannot be split across two places: overworld destination first, then the game's
+own `isBasePoint`, then whichever row spells an anchor out rather than leaving it
+at the origin. The live projector picks the same way, so the player dot follows.
+
+**Metyr, Mother of Fingers** was 912 px from her own arena for the same reason.
+She sits on the Finger Birthing Grounds now, where she lives. The Haligtree's
+rows disagree too, by 661 px, but were already landing on the right one.
+
+**Farum Azula's heights changed.** Height rides the same translation chain as
+the horizontal axes, so it moved with them: Dragonlord Placidusax reads 2228 m
+rather than 1010, Maliketh 1185 rather than −33. The new numbers are the
+consistent ones — the old ones came from the anchor that had the markers in the
+wrong place.
+
+**Re-run setup** (or `python tools/build_markers.py` and
+`python tools/extract_items.py`) — marker positions come from the generated
+files, so Farum Azula stays empty until they are rebuilt.
+
 ### 1.6 — the sidebar remembers itself
 
 **Collapsing the sidebar broke the map.** The collapsed rule pulled the sidebar
