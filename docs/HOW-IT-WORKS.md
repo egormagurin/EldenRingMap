@@ -27,6 +27,18 @@ walks every field in order, asserting the values the format guarantees — a
 after the bitfield — so a mis-step fails loudly instead of returning plausible
 garbage.
 
+## Which character is shown
+
+The game does not record which slot was played last, and a character that has
+never saved has a zeroed position block until its first autosave. So the map
+shows the slot picked in the sidebar (remembered per save file in
+`data/user-state.json`), else the first occupied one. With the live reader
+running, the running character is the slot whose last saved position is nearest
+the live map-screen pixel on the same map, with two guards: the slot on screen
+keeps its place unless another is nearer by more than 8 px, and a reading more
+than 1,024 px (four tiles) from every saved position decides nothing. Three
+consecutive samples have to agree before the display switches.
+
 ## Event flags
 
 Progress lives in a 1,833,375-byte (`0x1BF99F`) bitfield. Flag lookup:

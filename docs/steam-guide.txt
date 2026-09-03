@@ -1,5 +1,5 @@
 ================================================================================
-STEAM GUIDE COPY  —  paste-ready  (updated for v1.7)
+STEAM GUIDE COPY  —  paste-ready  (updated for v1.8)
 Steam Guides use BBCode, not Markdown. Everything below is already BBCode.
 ================================================================================
 
@@ -137,8 +137,8 @@ you ride, and switches layer when you go underground
 [/list]
 
 The sidebar remembers everything between sessions: which categories are on,
-which panels you folded, the map layer, even whether you collapsed the sidebar
-entirely to give the map the full window.
+which panels you folded, the map layer, which character you picked, even
+whether you collapsed the sidebar entirely to give the map the full window.
 
 [h2]On your phone[/h2]
 
@@ -222,8 +222,8 @@ Set [b]GAMEDIR[/b] near the top of [b]Setup.bat[/b] to the folder containing
 local files, and go into the [b]Game[/b] folder.
 
 [b]The wrong character is shown[/b]
-Pick the save from the sidebar. With real-time mode on it matches the running
-character automatically.
+Pick it from the [b]Character[/b] dropdown in the sidebar. With real-time mode
+on, the running character takes over by itself once it has saved.
 
 [b]Markers show no height[/b]
 Re-run [b]Setup.bat[/b] — heights come from the generated files.
@@ -268,6 +268,11 @@ CHANGELOG BLOCK  (BBCode — paste at the bottom of the guide, above Download)
 --------------------------------------------------------------------------------
 
 [h1]Version history[/h1]
+
+[b]1.8[/b] — [b]Pick your character.[/b] A second character in the same save
+could not be selected. The sidebar now lists every character by name and level,
+remembers your pick, and real-time mode no longer hands a brand-new character's
+dot to an old one.
 
 [b]1.7[/b] — [b]Crumbling Farum Azula gets its markers.[/b] All 102 of them were
 landing in the Mountaintops instead of on the floating island, and Metyr, Mother

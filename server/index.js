@@ -141,7 +141,9 @@ for (const m of MARKERS) {
 
 const MARKER_DOC = { locales: markerData.locales || ['en'], markers: MARKERS };
 
-let userState = loadJson(USER_STATE, { checked: {} });
+let userState = loadJson(USER_STATE, {});
+if (!userState.checked) userState.checked = {};
+if (!userState.slots) userState.slots = {};     // save path -> slot on screen last time
 function saveUserState() {
   try {
     fs.mkdirSync(DATA, { recursive: true });
@@ -171,15 +173,35 @@ function computeFound(character) {
 const clients = new Set();
 let current = null;      // last good snapshot sent to clients
 let live = null;         // optional LiveMemory bridge
-let activeSlot = null;   // which save slot the running character is in
+let activeSlot = null;   // the slot on screen: picked in the sidebar, or matched to the running game
 let slotVotes = {};      // slot -> consecutive wins, for the re-match hysteresis
 
+const hasSlot = (snap, slot) => snap.characters.some((c) => c.slot === slot);
+
+/** The character the browser shows: the active slot, else the first occupied one. */
+function shownCharacter(snap) {
+  return snap.characters.find((c) => c.slot === activeSlot) || snap.characters[0] || null;
+}
+
 /**
- * A save holds up to ten characters and the game tells us nothing about which
- * one is loaded. Each character's save position is a good fingerprint though:
- * the running character is the slot whose last saved position is nearest the
- * live one on the same map. Ties resolve themselves as soon as you move.
+ * Show this slot, and remember it for the save so the map reopens on the same
+ * character next time. Both the dropdown and the live matcher land here, so
+ * "remembered" means whichever character was on screen last.
  */
+function setActiveSlot(slot, forPath) {
+  activeSlot = slot;
+  slotVotes = {};
+  if (current) current.activeSlot = slot;
+  if (slot === null) delete userState.slots[forPath];
+  else userState.slots[forPath] = slot;
+  saveUserState();
+}
+
+function rememberedSlot(forPath) {
+  const slot = userState.slots[forPath];
+  return Number.isInteger(slot) ? slot : null;
+}
+
 /**
  * Live height, from the player's world position - and the check that decides
  * whether to believe it.
@@ -216,16 +238,44 @@ function liveHeight(p) {
   return null;
 }
 
+/**
+ * A save holds up to ten characters and the game tells us nothing about which
+ * one is loaded. Each character's save position is a good fingerprint though:
+ * the running character is the slot whose last saved position is nearest the
+ * live one on the same map.
+ *
+ * Two rules keep one reading from flipping the display for no reason. The
+ * slot already on screen keeps its place unless another is nearer by more
+ * than a tie margin: two characters resting at the same grace stand on the
+ * same spot, so within a few pixels the reading cannot tell them apart, and
+ * the one the user picked should not lose to the other on a coin toss. And a
+ * reading far from every saved position decides nothing. A character that has
+ * never saved has no position at all (the block reads as zeros), and the only
+ * alternative would be to hand it to whichever old character is nearest -
+ * which is how a brand-new character used to show up as an old one.
+ *
+ * Returns the slot to show, or null when the reading cannot say.
+ */
+const SLOT_TIE_PX = 8;        // 1 px is about a metre
+const SLOT_MATCH_PX = 1024;   // four tiles: nearer than your last autosave, further than another character
+
+/** The DLC's underground shares the DLC's pixel space (project.js never emits M11). */
+const mapFamily = (master) => (master === 'M11' ? 'M10' : master);
+
 function matchActiveSlot(position) {
   if (!current || !position) return null;
-  let best = null;
+  const near = [];
   for (const character of current.characters) {
     const saved = character.mapPixel;
-    if (!saved || saved.master !== position.master) continue;
+    if (!saved || mapFamily(saved.master) !== mapFamily(position.master)) continue;
     const distance = Math.hypot(saved.px - position.px, saved.py - position.py);
-    if (!best || distance < best.distance) best = { slot: character.slot, distance };
+    if (distance <= SLOT_MATCH_PX) near.push({ slot: character.slot, distance });
   }
-  return best && best.slot;
+  if (!near.length) return null;
+  near.sort((a, b) => a.distance - b.distance);
+  const shown = near.find((c) => c.slot === activeSlot);
+  if (shown && shown.distance <= near[0].distance + SLOT_TIE_PX) return activeSlot;
+  return near[0].slot;
 }
 
 function broadcast(event, payload) {
@@ -285,6 +335,10 @@ function startWatcher(reader, savePath, pollMs) {
         return;
       }
       const prev = current;
+      // The slot on screen can vanish - the character deleted in-game, or the
+      // file swapped out underneath us - so fall back rather than keep naming
+      // a slot that is no longer in the list.
+      if (activeSlot !== null && !hasSlot(snap, activeSlot)) setActiveSlot(null, savePath);
       snap.activeSlot = activeSlot;
       current = snap;
 
@@ -300,7 +354,7 @@ function startWatcher(reader, savePath, pollMs) {
         }
       }
       broadcast('state', { ...snap, newlyFound: news });
-      const c0 = snap.characters[0];
+      const c0 = shownCharacter(snap);
       const label = c0 ? `${c0.name} lv${c0.level} ${c0.found.length}/${FLAG_MARKERS.length}` : 'no character';
       console.log(`[watch] ${reason}: ${label}` +
         (news.length ? `  +${news.reduce((n, x) => n + x.ids.length, 0)} new` : ''));
@@ -392,29 +446,46 @@ function main() {
     console.error('initial save parse failed:', err.message);
     process.exit(1);
   }
+  // Reopen on the character that was on screen last time, if it is still there.
+  const remembered = rememberedSlot(savePath);
+  activeSlot = hasSlot(current, remembered) ? remembered : null;
+  current.activeSlot = activeSlot;
 
   let stopWatcher = () => {};
 
   /**
-   * Point the server at another ER0000.* file. The path must be one listSaves()
-   * discovered: it arrives from the browser, and the alternative is letting any
-   * page on localhost name an arbitrary file for us to open and parse.
+   * Point the server at a character: another ER0000.* file, a slot in the
+   * current one, or both. The path must be one listSaves() discovered: it
+   * arrives from the browser, and the alternative is letting any page on
+   * localhost name an arbitrary file for us to open and parse.
+   *
+   * A null slot means no preference: the slot remembered for that file, if it
+   * still exists. The live matcher is not consulted here - its last sample may
+   * be minutes old - so the pick stands until fresh readings from the running
+   * game say otherwise.
    */
-  const switchSave = (nextPath) => {
-    const allowed = listSaves(savePath).some((entry) => entry.path === nextPath);
-    if (!allowed) throw new Error('save file is outside the discovered Elden Ring profiles');
-    const nextReader = new SaveReader(nextPath, bst);
-    const next = buildSnapshot(nextReader, nextPath);   // parse before tearing down
-    stopWatcher();
-    savePath = nextPath;
-    reader = nextReader;
-    activeSlot = null;
-    slotVotes = {};
-    current = next;
-    if (live && live.pos) activeSlot = matchActiveSlot(live.pos);
-    current.activeSlot = activeSlot;
-    current.live = live ? live.state : null;
-    stopWatcher = startWatcher(reader, savePath, args.poll);
+  const switchSave = (nextPath, slot) => {
+    let next = current;
+    let nextReader = reader;
+    if (nextPath !== savePath) {
+      const allowed = listSaves(savePath).some((entry) => entry.path === nextPath);
+      if (!allowed) throw new Error('save file is outside the discovered Elden Ring profiles');
+      nextReader = new SaveReader(nextPath, bst);
+      next = buildSnapshot(nextReader, nextPath);   // parse before tearing down
+    }
+    if (slot === null) {
+      const remembered = rememberedSlot(nextPath);
+      if (hasSlot(next, remembered)) slot = remembered;
+    }
+    if (slot !== null && !hasSlot(next, slot)) throw new Error(`no character in slot ${slot}`);
+    if (next !== current) {
+      stopWatcher();
+      savePath = nextPath;
+      reader = nextReader;
+      current = next;
+      stopWatcher = startWatcher(reader, savePath, args.poll);
+    }
+    setActiveSlot(slot, savePath);
     broadcast('state', { ...current, newlyFound: [] });
   };
 
@@ -430,15 +501,16 @@ function main() {
         ...s,
         characters: readSaveCharacters(s.path, bst),
       }));
-      return json(res, { current: savePath, saves });
+      return json(res, { current: savePath, slot: activeSlot, saves });
     }
     if (p === '/api/saves' && req.method === 'POST') {
       let body = '';
       req.on('data', (chunk) => { body += chunk; if (body.length > 65536) req.destroy(); });
       req.on('end', () => {
         try {
-          switchSave(JSON.parse(body).path);
-          json(res, { ok: true, current: savePath });
+          const { path: nextPath, slot } = JSON.parse(body);
+          switchSave(nextPath, Number.isInteger(slot) ? slot : null);
+          json(res, { ok: true, current: savePath, slot: activeSlot });
         } catch (error) { json(res, { error: error.message }, 400); }
       });
       return undefined;
@@ -507,10 +579,7 @@ data: ${JSON.stringify(live.pos)}
         if (matched !== null) {
           if (matched !== activeSlot) {
             slotVotes[matched] = (slotVotes[matched] || 0) + 1;
-            if (slotVotes[matched] >= 3) {
-              activeSlot = matched;
-              slotVotes = {};
-            }
+            if (slotVotes[matched] >= 3) setActiveSlot(matched, savePath);
           } else {
             slotVotes = {};
           }
@@ -528,7 +597,7 @@ data: ${JSON.stringify(live.pos)}
   }
 
   server.listen(args.port, args.host, () => {
-    const c = current.characters[0];
+    const c = shownCharacter(current);
     console.log('');
     console.log('  Elden Ring live map');
     console.log(`  save      ${savePath}`);

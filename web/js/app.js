@@ -267,6 +267,7 @@ async function boot() {
     buildLangSwitch();
     buildLayerButtons();
     buildCategories();
+    buildSavePicker();          // "Level" in the option labels follows the language
     refreshCounts();
     if (state.character) renderCharacter(state.character);
     if (state.selected) {
@@ -952,53 +953,107 @@ function buildCategories() {
 
 /**
  * The save picker: one dropdown for the save extension (vanilla .sl2, Reforged
- * .err, whatever else is installed) and one for the file itself, labelled by
- * the characters inside it rather than the Steam account id.
+ * .err, whatever else is installed) and one for the character, listing every
+ * slot of every save of that type by name and level. A file holding two
+ * characters gets two entries, so either can be picked; the Steam account id
+ * only appears when there is more than one profile to tell apart.
  */
+let pickerOptions = [];   // { path, slot, label } behind each character <option>
+
 function buildSavePicker() {
   const extension = $('save-extension');
-  const file = $('save-file');
+  const character = $('save-character');
   const extensions = [...new Set(state.saves.map((save) => save.extension))];
   const selected = state.saves.find((save) => save.path === state.savePath);
   extension.innerHTML = extensions.map((value) =>
     `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
   extension.value = (selected && selected.extension) || extensions[0] || '';
 
-  const renderFiles = () => {
+  const renderCharacters = () => {
     const matches = state.saves.filter((save) => save.extension === extension.value);
-    file.innerHTML = matches.map((save) => {
+    const accounts = new Set(matches.map((save) => save.account));
+    pickerOptions = [];
+    for (const save of matches) {
+      const suffix = accounts.size > 1 ? ` · ${save.account}` : '';
       const chars = save.characters || [];
-      const label = chars.length
-        ? chars.map((c) => `${c.name} · ${t('char.level')} ${c.level}`).join(' / ')
-        : `${t('save.account')} ${save.account}`;
-      return `<option value="${escapeHtml(save.path)}" title="${escapeHtml(save.path)}">${escapeHtml(label)}</option>`;
-    }).join('');
-    const current = matches.find((save) => save.path === state.savePath);
-    file.value = (current && current.path) || (matches[0] && matches[0].path) || '';
-    file.disabled = matches.length === 0;
+      if (!chars.length) {
+        pickerOptions.push({ path: save.path, slot: null,
+                             label: `${t('save.account')} ${save.account}` });
+      }
+      for (const c of chars) {
+        pickerOptions.push({ path: save.path, slot: c.slot,
+                             label: `${c.name} · ${t('char.level')} ${c.level}${suffix}` });
+      }
+    }
+    character.innerHTML = pickerOptions.map((o, i) =>
+      `<option value="${i}" title="${escapeHtml(o.path)}">${escapeHtml(o.label)}</option>`).join('');
+    character.disabled = pickerOptions.length === 0;
+    selectPickerOption(state.savePath, state.character ? state.character.slot : null);
   };
 
-  extension.onchange = renderFiles;
-  file.onchange = async () => {
-    if (!file.value || file.value === state.savePath) return;
+  extension.onchange = renderCharacters;
+  character.onchange = async () => {
+    const option = pickerOptions[Number(character.value)];
+    if (!option) return;
+    const shown = state.character ? state.character.slot : null;
+    if (option.path === state.savePath && option.slot === shown) return;
     extension.disabled = true;
-    file.disabled = true;
+    character.disabled = true;
     try {
       const response = await fetch('api/saves', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: file.value }),
+        body: JSON.stringify({ path: option.path, slot: option.slot }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || t('save.switchFailed'));
       state.savePath = result.current;
+      // The new snapshot arrives over the event stream and syncs the picker.
     } catch (error) {
       toast(t('save.switchFailed'), error.message);
+      syncSavePicker();       // back to what is actually on screen
     } finally {
       extension.disabled = false;
-      renderFiles();          // also re-enables the file select
+      character.disabled = pickerOptions.length === 0;
     }
   };
-  renderFiles();
+  renderCharacters();
+}
+
+/** Select (path, slot) in the character dropdown; the file's first entry when the slot is unknown. */
+function selectPickerOption(path, slot) {
+  let index = pickerOptions.findIndex((o) => o.path === path && o.slot === slot);
+  if (index < 0) index = pickerOptions.findIndex((o) => o.path === path);
+  if (index >= 0) $('save-character').value = String(index);
+}
+
+/**
+ * Make the picker agree with the character on screen. Runs for every snapshot
+ * and whenever the live matcher moves to another slot, so the dropdown follows
+ * the running character rather than the other way round.
+ */
+function syncSavePicker() {
+  const extension = $('save-extension');
+  const save = state.saves.find((s) => s.path === state.savePath);
+  if (save && extension.value !== save.extension && typeof extension.onchange === 'function') {
+    extension.value = save.extension;
+    extension.onchange();        // rebuilds the character list, then selects
+    return;
+  }
+  selectPickerOption(state.savePath, state.character ? state.character.slot : null);
+}
+
+/**
+ * Keep the picker's entry for the watched file current, from the snapshot: a
+ * character created while the map was open should be selectable without a
+ * reload, and a level-up should show.
+ */
+function refreshSaveEntry(s) {
+  const entry = state.saves.find((save) => save.path === s.savePath);
+  if (!entry) return;
+  const chars = (s.characters || []).map((c) => ({ slot: c.slot, name: c.name, level: c.level }));
+  if (JSON.stringify(chars) === JSON.stringify(entry.characters || [])) return;
+  entry.characters = chars;
+  buildSavePicker();
 }
 
 function refreshCounts() {
@@ -1128,6 +1183,7 @@ function connect() {
         state.found = new Set(active.found || []);
         renderCharacter(active);
         refreshCounts();
+        syncSavePicker();
       }
       if (map) map.requestDraw();
     } catch { /* ignore a malformed frame */ }
@@ -1173,13 +1229,19 @@ function applyState(s) {
     };
   });
 
-  // Show the slot the live reader matched to the running game; without a live
-  // feed there is nothing to match against, so fall back to the first slot.
-  const c = state.characters.find((x) => x.slot === s.activeSlot) || state.characters[0];
-  if (!c) { $('char-name').textContent = t('app.noCharacter'); return; }
-
-  state.found = new Set(c.found || []);
+  // Show the slot the server names: the one picked in the sidebar, or the one
+  // the live reader matched to the running game. Neither yet, the first slot.
+  const c = state.characters.find((x) => x.slot === s.activeSlot) || state.characters[0] || null;
   state.character = c;
+  state.found = new Set(c ? c.found || [] : []);
+  refreshSaveEntry(s);
+  syncSavePicker();
+  if (!c) {
+    $('char-name').textContent = t('app.noCharacter');
+    refreshCounts();
+    if (map) map.requestDraw();
+    return;
+  }
 
   renderCharacter(c);
   refreshCounts();

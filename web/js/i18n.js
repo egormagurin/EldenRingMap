@@ -112,7 +112,7 @@ const STRINGS = {
     'char.hoursShort': 'h',
     'char.minutesShort': 'm',
     'save.extension': 'Save type',
-    'save.file': 'Save file',
+    'save.character': 'Character',
     'save.account': 'Account',
     'save.switchFailed': 'Could not switch save',
 
@@ -252,7 +252,7 @@ const STRINGS = {
     'char.hoursShort': 'ч',
     'char.minutesShort': 'м',
     'save.extension': 'Тип сохранения',
-    'save.file': 'Файл сохранения',
+    'save.character': 'Персонаж',
     'save.account': 'Аккаунт',
     'save.switchFailed': 'Не удалось сменить сохранение',
 

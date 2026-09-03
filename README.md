@@ -42,7 +42,7 @@ during setup, in about two minutes.
 - Search, marker clustering, manual check-off, and a "hide found" filter.
 - Categories toggle independently, so you can show just Golden Seeds, or just
   what you haven't picked up yet — and the sidebar remembers your choices,
-  folded panels and map layer between sessions.
+  folded panels, map layer and character between sessions.
 
 ---
 
@@ -144,9 +144,12 @@ closing it stops the map.
 Your save is found automatically. Start the game, play, and the map keeps up on
 its own.
 
-If you have more than one save, the sidebar has two dropdowns: one for the save
-type (`.sl2` for vanilla, `.err` for Reforged) and one for the save file itself,
-listed by the characters inside it rather than by Steam account id.
+If you have more than one character, the sidebar has two dropdowns: one for the
+save type (`.sl2` for vanilla, `.err` for Reforged) and one listing every
+character in every save of that type, by name and level. Pick one and the map
+shows that character's progress. The choice is remembered, so the map reopens on
+the same character next time. With real-time mode on, the running character
+takes over by itself.
 
 | Control | |
 |---|---|
@@ -256,12 +259,16 @@ npm start -- --save "C:\path\to\ER0000.sl2"
 
 ### The wrong character is shown
 
+Pick the right one from the **Character** dropdown in the sidebar. It lists
+every character in every save, and the map remembers the choice.
+
 With real-time mode on, the running character is matched to a save slot by
-comparing its live position against each slot's last saved position, so it
-settles on the right one within a few samples of you moving. Without a running
-game there is nothing to compare against and the **first occupied slot** is
-shown. Use the save-type and save-file dropdowns in the sidebar to pick a
-different save file.
+comparing its live position against each slot's last saved position, and takes
+over from whatever you picked within a few samples of you moving. A character
+that has never saved has no position to match yet — the slot reads as zeros
+until its first autosave — so a brand-new character stays on the dropdown
+choice until then. Without a running game there is nothing to compare against,
+and the dropdown choice (or the first occupied slot) is shown.
 
 ### Progress isn't updating
 
@@ -364,6 +371,31 @@ tool.
 ---
 
 ## Changelog
+
+### 1.8 — pick your character
+
+**A second character in the same save could not be selected.** The save-file
+dropdown named a file by every character inside it — `Tarnished · Level 57 /
+Wretch · Level 6` was one entry — and the map always showed the first occupied
+slot. Real-time mode did not rescue it: the running character is matched to a
+slot by comparing the live position against each slot's last saved position,
+and a character that has never saved has no position at all (the block reads as
+zeros), so a brand-new one was skipped and its dot was handed to whichever old
+character was nearest.
+
+The dropdown is now one entry per character — name and level, across every
+save of the chosen type — and picking one shows that character's progress,
+stats and position. The choice is remembered per save file, so the map reopens
+on the same character.
+
+**Live matching now respects the pick.** The slot on screen keeps its place
+unless another slot's saved position is nearer by more than 8 px: two
+characters resting at the same grace stand on the same spot, and used to
+resolve to whichever came first in the file. And a reading more than four
+tiles from every saved position decides nothing, rather than defaulting to the
+nearest stranger — which covers a fresh character before its first autosave,
+and you on Torrent between two of them. Once the running character has saved,
+it is the one shown, whatever the dropdown said.
 
 ### 1.7 — Farum Azula lands on its own map
 
